@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理关键词组 - OnTarget文献推送系统</title>
+    <link rel="icon" type="image/jpeg" href="/static/images/logo.jpg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #5a9a8f;
+            --primary-light: #7ab5ac;
+            --primary-dark: #4a8579;
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f4;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --text-muted: #b2bec3;
+            --border-color: #dfe6e9;
+            --border-light: #f1f3f4;
+            --success: #00b894;
+            --danger: #ff7675;
+            --warning: #fdcb6e;
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: var(--spacing-md) var(--spacing-xl);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn-danger {
+            background: rgba(255, 118, 117, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 118, 117, 0.2);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+        }
+
+        .page-header {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .page-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            padding: var(--spacing-md);
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+
+
+        /* Group Cards Grid */
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        /* Group Card */
+        .group-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .group-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .group-card.inactive {
+            opacity: 0.5;
+            background: #f5f5f5;
+            border: 2px dashed #ccc;
+        }
+
+        .group-card.inactive .group-name {
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .group-card.inactive .group-icon {
+            filter: grayscale(100%);
+        }
+
+        .group-status-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+
+        .group-status-badge.active {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .group-status-badge.inactive {
+            background: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+
+        .group-header {
+            padding: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .group-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .group-info {
+            flex: 1;
+        }
+
+        .group-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .group-description {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .group-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .action-btn.toggle-active {
+            background: var(--success);
+            color: white;
+        }
+
+        .action-btn.toggle-inactive {
+            background: var(--text-muted);
+            color: white;
+        }
+
+        .group-content {
+            padding: var(--spacing-md);
+        }
+
+        .keywords-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+            margin-bottom: var(--spacing-md);
+            min-height: 32px;
+        }
+
+        .keyword-tag {
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .keyword-tag.more {
+            background: var(--primary);
+            color: white;
+        }
+
+        .group-stats {
+            display: flex;
+            gap: var(--spacing-md);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Add Group Card */
+        .add-group-card {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-xl);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 200px;
+        }
+
+        .add-group-card:hover {
+            border-color: var(--primary);
+            background: rgba(90, 154, 143, 0.05);
+        }
+
+        .add-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .add-text {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: var(--spacing-lg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: var(--spacing-lg);
+        }
+
+        .modal-footer {
+            padding: var(--spacing-lg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--spacing-sm);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        /* Icon Selector */
+        .icon-selector {
+            display: flex;
+            gap: var(--spacing-xs);
+            flex-wrap: wrap;
+        }
+
+        .icon-option {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .icon-option:hover {
+            border-color: var(--primary);
+        }
+
+        .icon-option.selected {
+            border-color: var(--primary);
+            background: rgba(90, 154, 143, 0.1);
+        }
+
+        /* Color Selector */
+        .color-selector {
+            display: flex;
+            gap: var(--spacing-xs);
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: var(--text-primary);
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            background: var(--text-muted);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: var(--success);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle.active .toggle-slider {
+            transform: translateX(24px);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-sm);
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        .toast.info {
+            background: var(--primary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+            display: block;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: var(--spacing-sm) var(--spacing-md);
+            }
+
+            .header-content {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: var(--spacing-xs);
+            }
+
+            .logo-text {
+                font-size: 1rem;
+            }
+
+            .logo-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .header-nav .btn span {
+                display: none;
+            }
+
+            .header-nav .btn {
+                padding: 0.4rem;
+                width: 36px;
+                height: 36px;
+                justify-content: center;
+            }
+
+            .main-container {
+                padding: var(--spacing-md);
+            }
+
+            .page-header h1 {
+                font-size: 1.4rem;
+            }
+
+            .page-header p {
+                font-size: 0.875rem;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+                align-items: stretch;
+            }
+
+            .action-bar .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .groups-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+
+            .group-card {
+                border-radius: var(--radius-sm);
+            }
+
+            .group-header {
+                padding: var(--spacing-sm);
+            }
+
+            .group-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+
+            .group-name {
+                font-size: 0.9rem;
+            }
+
+            .group-description {
+                font-size: 0.7rem;
+            }
+
+            .group-actions {
+                gap: 0.25rem;
+            }
+
+            .action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 0.8rem;
+            }
+
+            .group-content {
+                padding: var(--spacing-sm);
+            }
+
+            .keywords-preview {
+                min-height: auto;
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .keyword-tag {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.4rem;
+            }
+
+            .group-stats {
+                font-size: 0.75rem;
+                gap: var(--spacing-sm);
+            }
+
+            .add-group-card {
+                min-height: 150px;
+                padding: var(--spacing-lg);
+            }
+
+            .add-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 1.25rem;
+            }
+
+            /* Modal improvements for mobile */
+            .modal-content {
+                width: 95%;
+                max-width: none;
+                max-height: 90vh;
+                margin: var(--spacing-md);
+                border-radius: var(--radius-md);
+            }
+
+            .modal-header {
+                padding: var(--spacing-md);
+            }
+
+            .modal-title {
+                font-size: 1rem;
+            }
+
+            .modal-body {
+                padding: var(--spacing-md);
+            }
+
+            .modal-footer {
+                padding: var(--spacing-md);
+                flex-direction: column;
+                gap: var(--spacing-xs);
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .form-group {
+                margin-bottom: var(--spacing-sm);
+            }
+
+            .form-label {
+                font-size: 0.8rem;
+            }
+
+            .form-input {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 0.625rem;
+            }
+
+            .form-textarea {
+                min-height: 80px;
+            }
+
+            .icon-selector {
+                gap: 0.25rem;
+            }
+
+            .icon-option {
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+
+            .color-option {
+                width: 28px;
+                height: 28px;
+            }
+
+            .category-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .category-item {
+                padding: 12px 8px;
+            }
+
+            .toggle-switch {
+                font-size: 0.875rem;
+            }
+
+            /* Settings modal specific */
+            #settings-modal .modal-content {
+                max-height: 85vh;
+            }
+
+            #sources-checkboxes {
+                gap: 0.375rem;
+            }
+
+            #sources-checkboxes label {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .group-stats {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .stat-item {
+                flex: 1 1 45%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="/static/images/logo.jpg" alt="Logo">
+                </div>
+                <div class="logo-text">OnTarget文献推送系统</div>
+            </div>
+            <nav class="header-nav">
+                <a href="javascript:void(0)" class="btn btn-secondary" onclick="goToFirstGroup()">
+                    <i class="fas fa-home"></i> 首页
+                </a>
+                <div class="user-info" id="user-info" style="margin-left: 0.5rem; position: relative; cursor: pointer;" onclick="toggleUserDropdown(event)" title="用户菜单">
+                    <span id="user-avatar" style="font-size: 24px;"></span>
+                    <span id="user-name" style="font-size: 0.875rem;"></span>
+                    <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 4px;"></i>
+                    
+                    <!-- 用户下拉菜单 -->
+                    <div class="user-dropdown" id="user-dropdown" style="display: none; position: absolute; top: calc(100% + 0.5rem); right: 0; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); min-width: 160px; z-index: 1000; overflow: hidden;">
+                        <button class="user-dropdown-item" onclick="openSettingsModal(); event.stopPropagation();" style="padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 0.875rem;">
+                            <i class="fas fa-cog"></i>
+                            <span>用户设置</span>
+                        </button>
+                        <button class="user-dropdown-item" onclick="showChangePasswordModal(); event.stopPropagation();" style="padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 0.875rem;">
+                            <i class="fas fa-key"></i>
+                            <span>修改密码</span>
+                        </button>
+                        <div style="height: 1px; background: var(--border-color); margin: 0.25rem 0;"></div>
+                        <button class="user-dropdown-item" onclick="logout()" style="padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; transition: background 0.2s; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-size: 0.875rem;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>退出登录</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>管理关键词组</h1>
+                    <p>创建和管理多个关键词组，每个组对应不同的研究领域</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <span id="groups-count" style="color: var(--text-secondary);">
+                加载中...
+            </span>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i> 创建新组
+            </button>
+        </div>
+
+        <!-- Groups Grid -->
+        <div class="groups-grid" id="groups-container">
+            <!-- Groups will be loaded dynamically -->
+        </div>
+    </main>
+
+    <!-- Create/Edit Modal -->
+    <div id="group-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">创建关键词组</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="group-form">
+                    <input type="hidden" id="group-id">
+                    
+                    <div class="form-group">
+                        <label class="form-label">组名称 *</label>
+                        <input type="text" class="form-input" id="group-name" 
+                               placeholder="例如：蛋白降解研究" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <input type="text" class="form-input" id="group-description" 
+                               placeholder="简要描述这个组的研究方向">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">选择图标</label>
+                        <div class="icon-selector" id="icon-selector">
+                            <!-- 科学研究 -->
+                            <div class="icon-option selected" data-icon="🔬">🔬</div>
+                            <div class="icon-option" data-icon="🧪">🧪</div>
+                            <div class="icon-option" data-icon="🧫">🧫</div>
+                            <div class="icon-option" data-icon="⚗️">⚗️</div>
+                            <div class="icon-option" data-icon="🧬">🧬</div>
+                            <div class="icon-option" data-icon="🔭">🔭</div>
+                            <div class="icon-option" data-icon="⚛️">⚛️</div>
+                            <div class="icon-option" data-icon="🧮">🧮</div>
+                            <!-- 医学健康 -->
+                            <div class="icon-option" data-icon="🩺">🩺</div>
+                            <div class="icon-option" data-icon="💊">💊</div>
+                            <div class="icon-option" data-icon="💉">💉</div>
+                            <div class="icon-option" data-icon="🩹">🩹</div>
+                            <div class="icon-option" data-icon="🩸">🩸</div>
+                            <div class="icon-option" data-icon="🧬">🧬</div>
+                            <div class="icon-option" data-icon="🦠">🦠</div>
+                            <div class="icon-option" data-icon="🧫">🧫</div>
+                            <!-- 生物医学 -->
+                            <div class="icon-option" data-icon="🧠">🧠</div>
+                            <div class="icon-option" data-icon="🫀">🫀</div>
+                            <div class="icon-option" data-icon="🫁">🫁</div>
+                            <div class="icon-option" data-icon="🦴">🦴</div>
+                            <div class="icon-option" data-icon="🧬">🧬</div>
+                            <div class="icon-option" data-icon="🧪">🧪</div>
+                            <div class="icon-option" data-icon="🧫">🧫</div>
+                            <div class="icon-option" data-icon="🔬">🔬</div>
+                            <!-- 扩展生物医学 -->
+                            <div class="icon-option" data-icon="🧍">🧍</div>
+                            <div class="icon-option" data-icon="🧍‍♂️">🧍‍♂️</div>
+                            <div class="icon-option" data-icon="🧍‍♀️">🧍‍♀️</div>
+                            <div class="icon-option" data-icon="🧎">🧎</div>
+                            <div class="icon-option" data-icon="🧎‍♂️">🧎‍♂️</div>
+                            <div class="icon-option" data-icon="🧎‍♀️">🧎‍♀️</div>
+                            <div class="icon-option" data-icon="🧘">🧘</div>
+                            <div class="icon-option" data-icon="🧘‍♂️">🧘‍♂️</div>
+                            <div class="icon-option" data-icon="🧘‍♀️">🧘‍♀️</div>
+                            <div class="icon-option" data-icon="🛡️">🛡️</div>
+                            <div class="icon-option" data-icon="🧲">🧲</div>
+                            <div class="icon-option" data-icon="🔬">🔬</div>
+                            <!-- 细胞与分子 -->
+                            <div class="icon-option" data-icon="⚡">⚡</div>
+                            <div class="icon-option" data-icon="🔆">🔆</div>
+                            <div class="icon-option" data-icon="🌡️">🌡️</div>
+                            <div class="icon-option" data-icon="🧬">🧬</div>
+                            <div class="icon-option" data-icon="🔴">🔴</div>
+                            <div class="icon-option" data-icon="🟢">🟢</div>
+                            <div class="icon-option" data-icon="🔵">🔵</div>
+                            <div class="icon-option" data-icon="⚪">⚪</div>
+                            <!-- 数据分析 -->
+                            <div class="icon-option" data-icon="📊">📊</div>
+                            <div class="icon-option" data-icon="📈">📈</div>
+                            <div class="icon-option" data-icon="📉">📉</div>
+                            <div class="icon-option" data-icon="📋">📋</div>
+                            <div class="icon-option" data-icon="📄">📄</div>
+                            <div class="icon-option" data-icon="📑">📑</div>
+                            <div class="icon-option" data-icon="🔍">🔍</div>
+                            <div class="icon-option" data-icon="🎯">🎯</div>
+                            <!-- 技术工程 -->
+                            <div class="icon-option" data-icon="💻">💻</div>
+                            <div class="icon-option" data-icon="⚙️">⚙️</div>
+                            <div class="icon-option" data-icon="🔧">🔧</div>
+                            <div class="icon-option" data-icon="🔩">🔩</div>
+                            <div class="icon-option" data-icon="🤖">🤖</div>
+                            <div class="icon-option" data-icon="💡">💡</div>
+                            <div class="icon-option" data-icon="🔋">🔋</div>
+                            <div class="icon-option" data-icon="⚡">⚡</div>
+                            <!-- 自然生态 -->
+                            <div class="icon-option" data-icon="🌿">🌿</div>
+                            <div class="icon-option" data-icon="🌱">🌱</div>
+                            <div class="icon-option" data-icon="🌲">🌲</div>
+                            <div class="icon-option" data-icon="🌾">🌾</div>
+                            <div class="icon-option" data-icon="🍄">🍄</div>
+                            <div class="icon-option" data-icon="🌊">🌊</div>
+                            <div class="icon-option" data-icon="🌍">🌍</div>
+                            <div class="icon-option" data-icon="🌎">🌎</div>
+                            <!-- 学术教育 -->
+                            <div class="icon-option" data-icon="📚">📚</div>
+                            <div class="icon-option" data-icon="📖">📖</div>
+                            <div class="icon-option" data-icon="✏️">✏️</div>
+                            <div class="icon-option" data-icon="🎓">🎓</div>
+                            <div class="icon-option" data-icon="🧑‍🎓">🧑‍🎓</div>
+                            <div class="icon-option" data-icon="👨‍🎓">👨‍🎓</div>
+                            <div class="icon-option" data-icon="👩‍🎓">👩‍🎓</div>
+                            <div class="icon-option" data-icon="🏫">🏫</div>
+                            <!-- 专业领域 -->
+                            <div class="icon-option" data-icon="⚕️">⚕️</div>
+                            <div class="icon-option" data-icon="🏥">🏥</div>
+                            <div class="icon-option" data-icon="🏛️">🏛️</div>
+                            <div class="icon-option" data-icon="🏢">🏢</div>
+                            <div class="icon-option" data-icon="🏭">🏭</div>
+                            <div class="icon-option" data-icon="🚑">🚑</div>
+                            <div class="icon-option" data-icon="🚒">🚒</div>
+                            <div class="icon-option" data-icon="✈️">✈️</div>
+                            <!-- 通用标志 -->
+                            <div class="icon-option" data-icon="⭐">⭐</div>
+                            <div class="icon-option" data-icon="🌟">🌟</div>
+                            <div class="icon-option" data-icon="✨">✨</div>
+                            <div class="icon-option" data-icon="🔥">🔥</div>
+                            <div class="icon-option" data-icon="❄️">❄️</div>
+                            <div class="icon-option" data-icon="🌈">🌈</div>
+                            <div class="icon-option" data-icon="💎">💎</div>
+                            <div class="icon-option" data-icon="🎨">🎨</div>
+                            <!-- 时间相关 -->
+                            <div class="icon-option" data-icon="⏰">⏰</div>
+                            <div class="icon-option" data-icon="⌛">⌛</div>
+                            <div class="icon-option" data-icon="🕐">🕐</div>
+                            <div class="icon-option" data-icon="📅">📅</div>
+                            <div class="icon-option" data-icon="📆">📆</div>
+                            <div class="icon-option" data-icon="🗓️">🗓️</div>
+                            <div class="icon-option" data-icon="⏱️">⏱️</div>
+                            <div class="icon-option" data-icon="🕰️">🕰️</div>
+                            <!-- 文档文件 -->
+                            <div class="icon-option" data-icon="📁">📁</div>
+                            <div class="icon-option" data-icon="📂">📂</div>
+                            <div class="icon-option" data-icon="🗂️">🗂️</div>
+                            <div class="icon-option" data-icon="📓">📓</div>
+                            <div class="icon-option" data-icon="📔">📔</div>
+                            <div class="icon-option" data-icon="📕">📕</div>
+                            <div class="icon-option" data-icon="📗">📗</div>
+                            <div class="icon-option" data-icon="📘">📘</div>
+                            <div class="icon-option" data-icon="📙">📙</div>
+                            <div class="icon-option" data-icon="📒">📒</div>
+                            <div class="icon-option" data-icon="📝">📝</div>
+                            <div class="icon-option" data-icon="📌">📌</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">选择颜色</label>
+                        <div class="color-selector" id="color-selector">
+                            <div class="color-option selected" style="background: #5a9a8f;" data-color="#5a9a8f"></div>
+                            <div class="color-option" style="background: #e74c3c;" data-color="#e74c3c"></div>
+                            <div class="color-option" style="background: #3498db;" data-color="#3498db"></div>
+                            <div class="color-option" style="background: #f39c12;" data-color="#f39c12"></div>
+                            <div class="color-option" style="background: #9b59b6;" data-color="#9b59b6"></div>
+                            <div class="color-option" style="background: #1abc9c;" data-color="#1abc9c"></div>
+                            <div class="color-option" style="background: #34495e;" data-color="#34495e"></div>
+                            <div class="color-option" style="background: #e67e22;" data-color="#e67e22"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">关键词 *（每行一个或逗号分隔）</label>
+                        <textarea class="form-input form-textarea" id="group-keywords" 
+                                  placeholder="PROTAC&#10;molecular glue&#10;E3 ligase&#10;ubiquitin-proteasome" required></textarea>
+                        <small style="color: var(--text-muted);">输入关键词，系统将匹配包含这些关键词的文献</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">匹配模式</label>
+                        <select class="form-select" id="match-mode">
+                            <option value="any">包含任意关键词（推荐）</option>
+                            <option value="all">必须包含所有关键词（严格）</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-switch">
+                            <span>启用该组</span>
+                            <div class="toggle active" id="is-active-toggle" onclick="toggleActive()">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveGroup()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">确认删除</h3>
+                <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除关键词组 <strong id="delete-group-name"></strong> 吗？</p>
+                <p style="color: var(--danger); font-size: 0.875rem; margin-top: var(--spacing-sm);">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    此操作不可恢复，该组的所有收藏和阅读记录也将被删除。
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">取消</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> 删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-cog"></i> 用户设置</h3>
+                <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="settings-form">
+                    <div class="form-group">
+                        <label class="form-label">AI API 供应商</label>
+                        <select class="form-input" id="settings-api-provider" onchange="updateProviderInfo()">
+                            <option value="deepseek">DeepSeek (推荐)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic Claude</option>
+                            <option value="google">Google Gemini</option>
+                            <option value="zhipu">智谱AI (GLM)</option>
+                            <option value="kimi">Kimi (月之暗面)</option>
+                            <option value="doubao">豆包 (字节)</option>
+                            <option value="qwen">千问 (阿里云)</option>
+                            <option value="minimax">MiniMax</option>
+                            <option value="tongyi">通义千问 (阿里)</option>
+                            <option value="spark">讯飞星火</option>
+                            <option value="wenxin">文心一言 (百度)</option>
+                            <option value="hunyuan">腾讯混元</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">API Key</label>
+                        <input type="password" class="form-input" id="settings-api-key" 
+                               placeholder="请输入您的API Key">
+                        <small style="color: var(--text-muted);">留空则使用系统默认API</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">API Base URL (可选)</label>
+                        <input type="text" class="form-input" id="settings-api-base-url" 
+                               placeholder="如使用代理或自定义endpoint">
+                        <small style="color: var(--text-muted);">默认：DeepSeek: https://api.deepseek.com | OpenAI: https://api.openai.com | Anthropic: https://api.anthropic.com</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">模型名称</label>
+                        <input type="text" class="form-input" id="settings-model" 
+                               placeholder="如: deepseek-chat, gpt-3.5-turbo, claude-3-haiku">
+                    </div>
+
+                    <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-color);">
+
+                    <div class="form-group">
+                        <label class="form-label"><i class="fas fa-database"></i> 文献来源</label>
+                        <div id="sources-checkboxes" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                            <!-- 文献源复选框将通过JS动态生成 -->
+                        </div>
+                        <small style="color: var(--text-muted);">选择要从哪些来源获取文献</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">文献更新频率 (天)</label>
+                        <input type="number" class="form-input" id="settings-update-frequency" 
+                               min="1" max="30" value="7">
+                        <small style="color: var(--text-muted);">每次"更新文献"获取多少天内的文献</small>
+                    </div>
+
+                    <!-- DEBUG: Auto Update Feature Added -->
+                    <!-- 自动更新设置 -->
+                    <div class="form-group" style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
+                        <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="settings-auto-update-enabled" style="width: auto;">
+                            <span>启用自动更新</span>
+                        </label>
+                        <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                            系统将按设定间隔自动获取新文献
+                        </small>
+                    </div>
+
+                    <div class="form-group" id="auto-update-interval-group" style="display: none;">
+                        <label class="form-label">自动更新间隔</label>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm interval-btn" data-days="2">2天</button>
+                            <button type="button" class="btn btn-sm interval-btn" data-days="3">3天</button>
+                            <button type="button" class="btn btn-sm interval-btn" data-days="7">7天</button>
+                            <input type="number" class="form-input" id="settings-auto-update-interval" 
+                                   min="2" max="30" value="2" style="width: 80px;">
+                        </div>
+                        <small style="color: var(--text-muted);">最少2天，系统将错峰执行避免同时请求</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">自动分析最大数量</label>
+                        <input type="number" class="form-input" id="settings-max-analyze" 
+                               min="1" max="50" value="20">
+                        <small style="color: var(--text-muted);">获取文献时自动分析的最大篇数</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveSettings()">
+                    <i class="fas fa-save"></i> 保存设置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码模态框 -->
+    <div class="modal" id="change-password-modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+                <h3 class="modal-title" style="font-size: 1.25rem; font-weight: 600; margin: 0;">修改密码</h3>
+                <button onclick="closeChangePasswordModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">当前密码</label>
+                    <input type="password" class="form-input" id="current-password" placeholder="请输入当前密码" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">新密码</label>
+                    <input type="password" class="form-input" id="new-password" placeholder="请输入新密码（至少6位）" minlength="6" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">确认新密码</label>
+                    <input type="password" class="form-input" id="confirm-password" placeholder="请再次输入新密码" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                </div>
+                <div id="password-error" style="display: none; color: #ff7675; font-size: 14px; margin-top: 10px;"></div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.5rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color);">
+                <button class="btn btn-secondary" onclick="closeChangePasswordModal()">取消</button>
+                <button class="btn btn-primary" onclick="submitChangePassword()" id="submit-password-btn">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Global state
+        let groups = [];
+        let selectedIcon = '🔬';
+        let selectedColor = '#5a9a8f';
+        let isActive = true;
+        let deleteGroupId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserInfo();
+            loadGroups();
+            setupIconSelector();
+            setupColorSelector();
+            
+            // 检查是否需要自动打开设置
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('openSettings') === '1') {
+                openSettingsModal();
+                // 清除URL参数
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            // 当页面重新可见时刷新数据（从其他页面返回时）
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    loadGroups();
+                }
+            });
+        });
+
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/user/me');
+                const data = await response.json();
+                if (data.success && data.user) {
+                    document.getElementById('user-name').textContent = data.user.username;
+                    if (data.user.avatar && data.user.avatar.startsWith('emoji:')) {
+                        document.getElementById('user-avatar').textContent = data.user.avatar.replace('emoji:', '');
+                    }
+                }
+            } catch (error) {
+                console.error('Load user info error:', error);
+            }
+        }
+
+        // Load groups
+        async function loadGroups() {
+            try {
+                // 默认加载所有组（包括禁用的）
+                const url = '/api/user/keyword-groups?include_inactive=true';
+                const response = await fetch(url);
+                const contentType = response.headers.get('content-type');
+                
+                // 检查是否返回了 HTML（未登录）
+                if (!contentType || !contentType.includes('application/json')) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    groups = data.groups;
+                    renderGroups();
+                    updateGroupsCount();
+                } else if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    showToast(data.error || '加载失败', 'error');
+                }
+            } catch (error) {
+                showToast('加载失败: ' + error.message, 'error');
+            }
+        }
+
+        // Render groups
+        function renderGroups() {
+            const container = document.getElementById('groups-container');
+
+            if (groups.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fas fa-folder-open"></i>
+                        <p>还没有关键词组</p>
+                        <button class="btn btn-primary" onclick="openCreateModal()" style="margin-top: var(--spacing-md);">
+                            <i class="fas fa-plus"></i> 创建第一个组
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = groups.map(group => createGroupCard(group)).join('');
+
+            // Add "Create New" card
+            html += `
+                <div class="add-group-card" onclick="openCreateModal()">
+                    <div class="add-icon">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <div class="add-text">创建新组</div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Create group card HTML
+        function createGroupCard(group) {
+            const keywords = group.keywords || [];
+            const previewKeywords = keywords.slice(0, 5);
+            const hasMore = keywords.length > 5;
+            const statusBadge = group.is_active 
+                ? '' 
+                : '<span class="group-status-badge inactive">已禁用</span>';
+
+            return `
+                <div class="group-card ${group.is_active ? '' : 'inactive'}" data-id="${group.id}" 
+                     onclick="openGroupDashboard('${group.id}')">
+                    <div class="group-header" style="background: ${group.color}10;">
+                        <div class="group-icon" style="background: ${group.color}; color: white;">
+                            ${group.icon}
+                        </div>
+                        <div class="group-info">
+                            <div class="group-name">${group.name}${statusBadge}</div>
+                            <div class="group-description">${group.description || '暂无描述'}</div>
+                        </div>
+                        <div class="group-actions" onclick="event.stopPropagation()">
+                            <button class="action-btn ${group.is_active ? 'toggle-active' : 'toggle-inactive'}" 
+                                    onclick="toggleGroupActive('${group.id}', ${!group.is_active}); event.stopPropagation();"
+                                    title="${group.is_active ? '禁用' : '启用'}">
+                                <i class="fas fa-power-off"></i>
+                            </button>
+                            <button class="action-btn" onclick="openEditModal('${group.id}'); event.stopPropagation();" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn" onclick="openDeleteModal('${group.id}'); event.stopPropagation();" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="group-content">
+                        <div class="keywords-preview">
+                            ${previewKeywords.map(kw => `<span class="keyword-tag">${kw}</span>`).join('')}
+                            ${hasMore ? `<span class="keyword-tag more">+${keywords.length - 5}</span>` : ''}
+                        </div>
+                        <div class="group-stats">
+                            <div class="stat-item">
+                                <i class="fas fa-tag"></i>
+                                <span>${keywords.length} 个关键词</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-bookmark"></i>
+                                <span>${group.stats?.total_saved || 0} 已收藏</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-eye"></i>
+                                <span>${group.stats?.total_viewed || 0} 已读</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update groups count
+        function updateGroupsCount() {
+            const activeCount = groups.filter(g => g.is_active).length;
+            document.getElementById('groups-count').textContent = 
+                `共 ${groups.length} 个组，${activeCount} 个已启用`;
+        }
+
+        // Setup icon selector
+        function setupIconSelector() {
+            const selector = document.getElementById('icon-selector');
+            selector.addEventListener('click', function(e) {
+                if (e.target.classList.contains('icon-option')) {
+                    selector.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    selectedIcon = e.target.dataset.icon;
+                }
+            });
+        }
+
+        // Setup color selector
+        function setupColorSelector() {
+            const selector = document.getElementById('color-selector');
+            selector.addEventListener('click', function(e) {
+                if (e.target.classList.contains('color-option')) {
+                    selector.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    selectedColor = e.target.dataset.color;
+                }
+            });
+        }
+
+        // Toggle active in modal
+        function toggleActive() {
+            isActive = !isActive;
+            const toggle = document.getElementById('is-active-toggle');
+            if (isActive) {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+        }
+
+        // Open create modal
+        function openCreateModal() {
+            document.getElementById('modal-title').textContent = '创建关键词组';
+            document.getElementById('group-form').reset();
+            document.getElementById('group-id').value = '';
+            
+            // Reset selectors
+            document.querySelectorAll('.icon-option').forEach(el => el.classList.remove('selected'));
+            document.querySelector('.icon-option[data-icon="🔬"]').classList.add('selected');
+            selectedIcon = '🔬';
+            
+            document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+            document.querySelector('.color-option[data-color="#5a9a8f"]').classList.add('selected');
+            selectedColor = '#5a9a8f';
+            
+            isActive = true;
+            document.getElementById('is-active-toggle').classList.add('active');
+            
+            document.getElementById('group-modal').classList.add('active');
+        }
+
+        // Open edit modal
+        function openEditModal(groupId) {
+            const group = groups.find(g => g.id === groupId);
+            if (!group) return;
+
+            document.getElementById('modal-title').textContent = '编辑关键词组';
+            document.getElementById('group-id').value = group.id;
+            document.getElementById('group-name').value = group.name;
+            document.getElementById('group-description').value = group.description || '';
+            document.getElementById('group-keywords').value = group.keywords.join('\n');
+            document.getElementById('match-mode').value = group.match_mode || 'any';
+            
+            // Set icon
+            selectedIcon = group.icon || '🔬';
+            document.querySelectorAll('.icon-option').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.icon === selectedIcon) {
+                    el.classList.add('selected');
+                }
+            });
+            
+            // Set color
+            selectedColor = group.color || '#5a9a8f';
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.remove('selected');
+                if (el.dataset.color === selectedColor) {
+                    el.classList.add('selected');
+                }
+            });
+            
+            // Set active
+            isActive = group.is_active !== false;
+            const toggle = document.getElementById('is-active-toggle');
+            if (isActive) {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+            
+            document.getElementById('group-modal').classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('group-modal').classList.remove('active');
+        }
+
+        // Save group
+        async function saveGroup() {
+            const groupId = document.getElementById('group-id').value;
+            const name = document.getElementById('group-name').value.trim();
+            const description = document.getElementById('group-description').value.trim();
+            const keywordsText = document.getElementById('group-keywords').value;
+            const matchMode = document.getElementById('match-mode').value;
+
+            if (!name) {
+                showToast('请输入组名称', 'error');
+                return;
+            }
+
+            // Parse keywords
+            const keywords = keywordsText.split(/[\n,]/)
+                .map(k => k.trim())
+                .filter(k => k.length > 0);
+
+            if (keywords.length === 0) {
+                showToast('请输入至少一个关键词', 'error');
+                return;
+            }
+
+            const groupData = {
+                name: name,
+                description: description,
+                icon: selectedIcon,
+                color: selectedColor,
+                keywords: keywords,
+                match_mode: matchMode,
+                is_active: isActive
+            };
+
+            try {
+                let response;
+                if (groupId) {
+                    // Update existing
+                    response = await fetch(`/api/user/keyword-groups/${groupId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(groupData)
+                    });
+                } else {
+                    // Create new
+                    response = await fetch('/api/user/keyword-groups', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(groupData)
+                    });
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(groupId ? '更新成功' : '创建成功', 'success');
+                    closeModal();
+                    loadGroups();
+                } else {
+                    showToast(data.error || '保存失败', 'error');
+                }
+            } catch (error) {
+                showToast('保存失败: ' + error.message, 'error');
+            }
+        }
+
+        // Toggle group active
+        async function toggleGroupActive(groupId, active) {
+            try {
+                const response = await fetch(`/api/user/keyword-groups/${groupId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: active })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(active ? '已启用' : '已禁用', 'success');
+                    loadGroups();
+                } else {
+                    showToast(data.error || '操作失败', 'error');
+                }
+            } catch (error) {
+                showToast('操作失败: ' + error.message, 'error');
+            }
+        }
+
+        // Open delete modal
+        function openDeleteModal(groupId) {
+            const group = groups.find(g => g.id === groupId);
+            if (!group) return;
+
+            deleteGroupId = groupId;
+            document.getElementById('delete-group-name').textContent = group.name;
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        // Close delete modal
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('active');
+            deleteGroupId = null;
+        }
+
+        // Confirm delete
+        async function confirmDelete() {
+            if (!deleteGroupId) return;
+
+            try {
+                const response = await fetch(`/api/user/keyword-groups/${deleteGroupId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('删除成功', 'success');
+                    closeDeleteModal();
+                    loadGroups();
+                } else {
+                    showToast(data.error || '删除失败', 'error');
+                }
+            } catch (error) {
+                showToast('删除失败: ' + error.message, 'error');
+            }
+        }
+
+        // Toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Open group dashboard
+        function openGroupDashboard(groupId) {
+            // 检查是否是点击了操作按钮（按钮会阻止冒泡，但做一个安全检查）
+            if (event.target.closest('.action-btn')) {
+                return;
+            }
+            
+            // 跳转到 Dashboard 并带上 group_id 参数
+            window.location.href = `/?group_id=${groupId}`;
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+
+        // 跳转到第一个关键词组
+        async function goToFirstGroup() {
+            try {
+                const response = await fetch('/api/user/keyword-groups');
+                const data = await response.json();
+
+                if (data.success && data.groups && data.groups.length > 0) {
+                    // 获取第一个关键词组
+                    const firstGroup = data.groups[0];
+                    window.location.href = `/?group_id=${firstGroup.id}`;
+                } else {
+                    // 没有关键词组，创建默认组或留在当前页面
+                    showToast('请先创建关键词组', 'info');
+                }
+            } catch (error) {
+                console.error('Error getting first group:', error);
+                window.location.href = '/';
+            }
+        }
+
+        // 用户下拉菜单
+        function toggleUserDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('user-dropdown');
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        }
+
+        // 点击其他地方关闭下拉菜单
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('user-dropdown');
+            const userInfo = document.getElementById('user-info');
+            if (dropdown && userInfo && !userInfo.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // 修改密码相关函数
+        function showChangePasswordModal() {
+            const modal = document.getElementById('change-password-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeChangePasswordModal() {
+            const modal = document.getElementById('change-password-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            // 清空表单
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            const errorDiv = document.getElementById('password-error');
+            if (errorDiv) errorDiv.style.display = 'none';
+        }
+
+        async function submitChangePassword() {
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorDiv = document.getElementById('password-error');
+            const submitBtn = document.getElementById('submit-password-btn');
+
+            // 验证
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                errorDiv.textContent = '请填写所有字段';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                errorDiv.textContent = '新密码至少6位';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                errorDiv.textContent = '两次输入的新密码不一致';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '修改中...';
+
+            try {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('✅ 密码修改成功！', 'success');
+                    closeChangePasswordModal();
+                } else {
+                    errorDiv.textContent = data.error || '修改失败';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Change password error:', error);
+                errorDiv.textContent = '网络错误，请稍后重试';
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '确认修改';
+            }
+        }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+
+        // Settings Modal Functions
+        function openSettingsModal() {
+            loadSettings();
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/user/settings');
+                const contentType = response.headers.get('content-type');
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    const settings = data.settings;
+                    document.getElementById('settings-api-provider').value = settings.api_provider || 'deepseek';
+                    document.getElementById('settings-api-key').value = '';
+                    document.getElementById('settings-api-base-url').value = settings.api_base_url || '';
+                    document.getElementById('settings-model').value = settings.model || '';
+                    document.getElementById('settings-update-frequency').value = settings.update_frequency_days || 7;
+                    document.getElementById('settings-max-analyze').value = settings.max_auto_analyze || 20;
+                    updateProviderInfo();
+                    
+                    // 加载文献源选项
+                    loadAvailableSources(settings.sources || ['pubmed', 'biorxiv', 'medrxiv']);
+                    
+                    // 加载自动更新设置
+                    await loadAutoUpdateSettings();
+                }
+            } catch (error) {
+                console.error('Load settings error:', error);
+                showToast('加载设置失败', 'error');
+            }
+        }
+
+        function updateProviderInfo() {
+            const provider = document.getElementById('settings-api-provider').value;
+            const modelInput = document.getElementById('settings-model');
+            const baseUrlInput = document.getElementById('settings-api-base-url');
+            
+            const providerInfo = {
+                'deepseek': {'model': 'deepseek-chat', 'base': 'https://api.deepseek.com'},
+                'openai': {'model': 'gpt-3.5-turbo', 'base': 'https://api.openai.com'},
+                'anthropic': {'model': 'claude-3-haiku-20240307', 'base': 'https://api.anthropic.com'},
+                'google': {'model': 'gemini-1.5-flash', 'base': 'https://generativelanguage.googleapis.com'},
+                'zhipu': {'model': 'glm-4', 'base': 'https://open.bigmodel.cn'},
+                'kimi': {'model': 'moonshot-v1-8k', 'base': 'https://api.moonshot.cn'},
+                'doubao': {'model': 'doubao-lite-4k', 'base': 'https://ark.cn-beijing.volces.com'},
+                'qwen': {'model': 'qwen-turbo', 'base': 'https://dashscope.aliyuncs.com'},
+                'minimax': {'model': 'abab6.5s-chat', 'base': 'https://api.minimax.chat'},
+                'tongyi': {'model': 'qwen-turbo', 'base': 'https://dashscope.aliyuncs.com'},
+                'spark': {'model': 'Spark4.0 Ultra', 'base': 'https://spark-api.xf-yun.com'},
+                'wenxin': {'model': 'ernie-4.0-8k', 'base': 'https://qianfan.baidubce.com'},
+                'hunyuan': {'model': 'hunyuan', 'base': 'https://hunyuan.tencentcloudapi.com'}
+            };
+            
+            const info = providerInfo[provider] || providerInfo['deepseek'];
+            if (!modelInput.value) modelInput.placeholder = info.model;
+            if (!baseUrlInput.value) baseUrlInput.placeholder = info.base;
+        }
+
+        async function loadAvailableSources(userSources) {
+            try {
+                const response = await fetch('/api/sources/available');
+                const contentType = response.headers.get('content-type');
+                
+                if (!contentType || !contentType.includes('application/json')) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('sources-checkboxes');
+                    container.innerHTML = '';
+                    
+                    const sources = data.sources;
+                    for (const [key, info] of Object.entries(sources)) {
+                        const isChecked = userSources.includes(key);
+                        const label = document.createElement('label');
+                        label.style.cssText = 'display: flex; align-items: center; gap: 0.25rem; padding: 0.375rem 0.75rem; border: 1px solid var(--border-color); border-radius: 20px; cursor: pointer; font-size: 0.875rem; background: ' + (isChecked ? 'var(--primary)' : 'var(--bg-card)') + '; color: ' + (isChecked ? 'white' : 'var(--text-secondary)') + ';';
+                        label.innerHTML = `
+                            <input type="checkbox" value="${key}" ${isChecked ? 'checked' : ''} style="display: none;">
+                            <span>${info.name}</span>
+                        `;
+                        label.onclick = function() {
+                            const checkbox = this.querySelector('input');
+                            checkbox.checked = !checkbox.checked;
+                            this.style.background = checkbox.checked ? 'var(--primary)' : 'var(--bg-card)';
+                            this.style.color = checkbox.checked ? 'white' : 'var(--text-secondary)';
+                        };
+                        container.appendChild(label);
+                    }
+                }
+            } catch (error) {
+                console.error('Load sources error:', error);
+            }
+        }
+
+        // 自动更新设置相关函数
+        async function loadAutoUpdateSettings() {
+            try {
+                const response = await fetch('/api/user/auto-update-settings');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const settings = data.settings;
+                    const enabled = settings.enabled || false;
+                    const intervalDays = settings.interval_days || 2;
+                    
+                    // 设置开关状态
+                    const enabledCheckbox = document.getElementById('settings-auto-update-enabled');
+                    enabledCheckbox.checked = enabled;
+                    
+                    // 设置间隔天数
+                    document.getElementById('settings-auto-update-interval').value = intervalDays;
+                    
+                    // 更新按钮状态
+                    updateIntervalButtons(intervalDays);
+                    
+                    // 显示/隐藏间隔设置
+                    toggleAutoUpdateInterval(enabled);
+                    
+                    // 绑定开关事件
+                    enabledCheckbox.onchange = function() {
+                        toggleAutoUpdateInterval(this.checked);
+                    };
+                    
+                    // 绑定间隔按钮事件
+                    document.querySelectorAll('.interval-btn').forEach(btn => {
+                        btn.onclick = function() {
+                            const days = parseInt(this.dataset.days);
+                            document.getElementById('settings-auto-update-interval').value = days;
+                            updateIntervalButtons(days);
+                        };
+                    });
+                    
+                    // 绑定输入框事件
+                    document.getElementById('settings-auto-update-interval').onchange = function() {
+                        let days = parseInt(this.value);
+                        if (days < 2) days = 2;
+                        if (days > 30) days = 30;
+                        this.value = days;
+                        updateIntervalButtons(days);
+                    };
+                }
+            } catch (error) {
+                console.error('加载自动更新设置失败:', error);
+            }
+        }
+        
+        function toggleAutoUpdateInterval(show) {
+            const group = document.getElementById('auto-update-interval-group');
+            if (group) {
+                group.style.display = show ? 'block' : 'none';
+            }
+        }
+        
+        function updateIntervalButtons(selectedDays) {
+            document.querySelectorAll('.interval-btn').forEach(btn => {
+                const days = parseInt(btn.dataset.days);
+                if (days === selectedDays) {
+                    btn.classList.add('btn-primary');
+                    btn.classList.remove('btn-secondary');
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-secondary');
+                }
+            });
+        }
+
+        async function saveSettings() {
+            const apiProvider = document.getElementById('settings-api-provider').value;
+            const apiKey = document.getElementById('settings-api-key').value;
+            const apiBaseUrl = document.getElementById('settings-api-base-url').value;
+            const model = document.getElementById('settings-model').value;
+            const updateFrequency = document.getElementById('settings-update-frequency').value;
+            const maxAnalyze = document.getElementById('settings-max-analyze').value;
+            
+            // 获取选中的文献源
+            const sourceCheckboxes = document.querySelectorAll('#sources-checkboxes input[type="checkbox"]');
+            const selectedSources = Array.from(sourceCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            // 获取自动更新设置
+            const autoUpdateEnabled = document.getElementById('settings-auto-update-enabled').checked;
+            const autoUpdateInterval = parseInt(document.getElementById('settings-auto-update-interval').value) || 2;
+
+            try {
+                // 保存常规设置
+                const response = await fetch('/api/user/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_provider: apiProvider,
+                        api_key: apiKey,
+                        api_base_url: apiBaseUrl,
+                        model: model,
+                        update_frequency_days: parseInt(updateFrequency),
+                        max_auto_analyze: parseInt(maxAnalyze),
+                        sources: selectedSources
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 保存自动更新设置
+                    const autoUpdateResponse = await fetch('/api/user/auto-update-settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            enabled: autoUpdateEnabled,
+                            interval_days: Math.max(2, Math.min(30, autoUpdateInterval))
+                        })
+                    });
+
+                    const autoUpdateData = await autoUpdateResponse.json();
+
+                    if (autoUpdateData.success) {
+                        showToast('设置已保存' + (autoUpdateEnabled ? '，自动更新已启用' : ''), 'success');
+                        closeSettingsModal();
+                    } else {
+                        showToast(autoUpdateData.error || '自动更新设置保存失败', 'error');
+                    }
+                } else {
+                    showToast(data.error || '保存失败', 'error');
+                }
+            } catch (error) {
+                console.error('Save settings error:', error);
+                showToast('保存失败: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
