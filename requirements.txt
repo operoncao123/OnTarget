@@ -22,3 +22,4 @@ pytz>=2021.3
 tzlocal>=4.1
 sgmllib3k>=1.0.0
 cachetools>=5.0.0
+Flask-Limiter>=3.0.0
