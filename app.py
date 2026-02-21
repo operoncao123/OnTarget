@@ -2086,7 +2086,7 @@ def api_health():
 
 if __name__ == '__main__':
     host = os.getenv('WEB_HOST', '0.0.0.0')
-    port = int(os.getenv('WEB_PORT', '5001'))
+    port = int(os.getenv('WEB_PORT', '5500'))
     debug = os.getenv('WEB_DEBUG', 'True').lower() == 'true'
     
     print(f"\n{'='*60}")

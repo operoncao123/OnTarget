@@ -70,7 +70,7 @@ export FLASK_APP=app.py
 # 启动服务
 echo ""
 echo -e "${GREEN}启动服务...${NC}"
-echo -e "${GREEN}访问地址: http://localhost:5001${NC}"
+echo -e "${GREEN}访问地址: http://localhost:5500${NC}"
 echo -e "${YELLOW}按 Ctrl+C 停止服务${NC}"
 echo ""
 
@@ -79,7 +79,7 @@ if venv/bin/gunicorn &> /dev/null || [ -f "venv/bin/gunicorn" ]; then
     WORKERS=${WORKERS:-4}
     ./venv/bin/gunicorn \
         -w $WORKERS \
-        -b 0.0.0.0:5001 \
+        -b 0.0.0.0:5500 \
         --timeout 120 \
         --access-logfile - \
         --error-logfile - \
