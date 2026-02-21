@@ -658,17 +658,12 @@ def api_get_available_sources():
 @app.route('/api/papers/personalized')
 @login_required
 def api_get_personalized_papers():
-    """获取个性化文献列表（V2.6 支持分页）"""
     user_id = get_current_user_id()
 
-    if not user_id:
+    user = system.user_manager.get_user(user_id)
+    if not user:
         return jsonify({'success': False, 'error': '用户不存在'}), 404
 
-    # 获取用户信息
-    if user_id not in system.user_manager.users:
-        return jsonify({'success': False, 'error': '用户不存在'}), 404
-
-    user = system.user_manager.users[user_id]
     user_keywords = user.get('keywords', [])
 
     if not user_keywords:
@@ -782,9 +777,7 @@ def api_get_personalized_papers():
     papers = system.cache.batch_get_papers(paper_hashes)
     
     # 获取用户收藏的文献（全局）
-    saved_papers = []
-    if user_id in system.push_engine.user_papers:
-        saved_papers = system.push_engine.user_papers[user_id].get('saved_papers', [])
+    saved_papers = keyword_group_manager.get_all_saved_papers_for_user(user_id)
     
     # 为每篇文献计算个性化分数
     scored_papers = []
@@ -1030,14 +1023,12 @@ def api_get_stats():
 @app.route('/api/analyze-pending', methods=['POST'])
 @login_required
 def api_analyze_pending():
-    """分析待处理的文献"""
     user_id = get_current_user_id()
     
-    # 获取用户关键词
-    if user_id not in system.user_manager.users:
+    user = system.user_manager.get_user(user_id)
+    if not user:
         return jsonify({'success': False, 'error': '用户不存在'}), 404
     
-    user = system.user_manager.users[user_id]
     user_keywords = user.get('keywords', [])
     
     if not user_keywords:
