@@ -74,15 +74,15 @@ echo -e "${GREEN}访问地址: http://localhost:5000${NC}"
 echo -e "${YELLOW}按 Ctrl+C 停止服务${NC}"
 echo ""
 
-# 使用 gunicorn 启动（如果可用）
-if command -v gunicorn &> /dev/null; then
+# 使用 gunicorn 启动（如果虚拟环境中有）
+if venv/bin/gunicorn &> /dev/null || [ -f "venv/bin/gunicorn" ]; then
     WORKERS=${WORKERS:-4}
-    gunicorn \
+    ./venv/bin/gunicorn \
         -w $WORKERS \
         -b 0.0.0.0:5000 \
         --timeout 120 \
-        --access-logfile logs/access.log \
-        --error-logfile logs/error.log \
+        --access-logfile - \
+        --error-logfile - \
         app:app
 else
     # 使用 Flask 开发服务器
