@@ -191,7 +191,7 @@ def get_current_user_id():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        get_current_user_id() = LOCAL_USER_ID
+        session['user_id'] = LOCAL_USER_ID
         session['username'] = LOCAL_USER_ID
         return f(*args, **kwargs)
     return decorated_function
