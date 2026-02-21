@@ -8,7 +8,7 @@
 
 如果您发现了 bug 或有功能建议：
 
-1. 在 [GitHub Issues](https://github.com/yourusername/OnTarget-open/issues) 中搜索，确保问题尚未被报告
+1. 在 [GitHub Issues](https://github.com/operoncao123/OnTarget/issues) 中搜索，确保问题尚未被报告
 2. 创建新的 Issue，包含：
    - 清晰的标题和描述
    - 复现步骤（如果是 bug）
@@ -22,8 +22,8 @@
 
 2. **克隆您的 Fork**
    ```bash
-   git clone https://github.com/your-username/OnTarget-open.git
-   cd OnTarget-open
+   git clone https://github.com/your-username/OnTarget.git
+   cd OnTarget
    ```
 
 3. **创建特性分支**
@@ -102,8 +102,8 @@ pytest tests/ --cov=.
 
 如有任何问题，欢迎：
 
-- 在 [GitHub Discussions](https://github.com/yourusername/OnTarget-open/discussions) 讨论
-- 提交 [Issue](https://github.com/yourusername/OnTarget-open/issues)
+- 在 [GitHub Discussions](https://github.com/operoncao123/OnTarget/discussions) 讨论
+- 提交 [Issue](https://github.com/operoncao123/OnTarget/issues)
 - 发送邮件至：support@ontarget.chat
 
 ## 📄 许可证

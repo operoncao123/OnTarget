@@ -4,7 +4,7 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/OnTarget-open.svg?style=social)](https://github.com/yourusername/OnTarget-open)
+[![GitHub stars](https://img.shields.io/github/stars/operoncao123/OnTarget.svg?style=social)](https://github.com/operoncao123/OnTarget)
 
 **智能个性化文献推送平台 - 让学术文献主动找到你**
 
@@ -86,7 +86,7 @@ OnTarget 是一个智能的个性化文献推送系统，帮助你自动跟踪�
 #### 1. 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/OnTarget-open.git
+git clone https://github.com/operoncao123/OnTarget.git
 cd OnTarget-open
 ```
 
@@ -274,7 +274,7 @@ WORKERS=8  # 根据 CPU 核心数调整
 
 ### 报告问题
 
-- 使用 [GitHub Issues](https://github.com/yourusername/OnTarget-open/issues)
+- 使用 [GitHub Issues](https://github.com/operoncao123/OnTarget/issues)
 - 描述清楚问题的复现步骤
 - 附上错误日志和截图
 
@@ -306,8 +306,8 @@ WORKERS=8  # 根据 CPU 核心数调整
 ## 📧 联系方式
 
 - **在线服务**: [ontarget.chat](https://ontarget.chat)
-- **问题反馈**: [GitHub Issues](https://github.com/yourusername/OnTarget-open/issues)
-- **功能建议**: [GitHub Discussions](https://github.com/yourusername/OnTarget-open/discussions)
+- **问题反馈**: [GitHub Issues](https://github.com/operoncao123/OnTarget/issues)
+- **功能建议**: [GitHub Discussions](https://github.com/operoncao123/OnTarget/discussions)
 
 ---
 
