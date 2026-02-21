@@ -1627,30 +1627,13 @@
                 </button>
                 <button class="btn btn-primary update-btn" onclick="triggerUpdate()">
                     <i class="fas fa-sync-alt"></i>
-                    <span>更新文献</span>
-                </button>
-                <div class="user-info" id="user-info" style="margin-left: 0.5rem;" onclick="toggleUserDropdown(event)" title="用户菜单">
-                    <span id="user-avatar" style="font-size: 20px;"></span>
-                    <span id="username-display">加载中...</span>
-                    <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 4px;"></i>
-                    
-                    <!-- 用户下拉菜单 - 桌面端 -->
-                    <div class="user-dropdown" id="user-dropdown">
-                        <button class="user-dropdown-item" onclick="openUserSettings(event)">
-                            <i class="fas fa-cog"></i>
-                            <span>用户设置</span>
-                        </button>
-                        <button class="user-dropdown-item" onclick="showChangePasswordModal(event)">
-                            <i class="fas fa-key"></i>
-                            <span>修改密码</span>
-                        </button>
-                        <div class="user-dropdown-divider"></div>
-                        <!-- 开源版：                        <button class="user-dropdown-item" onclick="logout()">
-                        <!-- 开源版：                            <i class="fas fa-sign-out-alt"></i>
-                        <!-- 开源版：                            <span>退出登录</span>
-                        <!-- 开源版：                        </button>
-                    </div>
-                </div>
+                     <span>更新文献</span>
+                 </button>
+                 <div class="user-info" id="user-info" style="margin-left: 0.5rem;" onclick="openUserSettings(event)" title="用户设置">
+                     <span id="user-avatar" style="font-size: 20px;"></span>
+                     <span id="username-display">本地用户</span>
+                     <i class="fas fa-cog" style="font-size: 12px; margin-left: 4px;"></i>
+                 </div>
             </div>
         </div>
     </header>
@@ -1805,44 +1788,6 @@
         <span id="toast-message">操作成功</span>
     </div>
 
-    <!-- 修改密码模态框 -->
-    <div class="modal" id="change-password-modal">
-        <div class="modal-content" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3 class="modal-title">修改密码</h3>
-                <button class="modal-close" onclick="closeChangePasswordModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">当前密码</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" class="form-input" id="current-password" placeholder="请输入当前密码">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">新密码</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-key"></i>
-                        <input type="password" class="form-input" id="new-password" placeholder="请输入新密码（至少6位）" minlength="6">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">确认新密码</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-check-circle"></i>
-                        <input type="password" class="form-input" id="confirm-password" placeholder="请再次输入新密码">
-                    </div>
-                </div>
-                <div class="error-message" id="password-error" style="display: none; color: #dc2626; font-size: 14px; margin-top: 10px;"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeChangePasswordModal()">取消</button>
-                <button class="btn btn-primary" onclick="submitChangePassword()" id="submit-password-btn">确认修改</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Settings Modal -->
     <div class="modal" id="settings-modal">
         <div class="modal-content" style="max-width: 500px;">
@@ -1990,15 +1935,6 @@
             <button class="mobile-user-menu-item" onclick="openUserSettings(); closeMobileUserMenu();">
                 <i class="fas fa-cog"></i>
                 <span>用户设置</span>
-            </button>
-            <button class="mobile-user-menu-item" onclick="showChangePasswordModal(); closeMobileUserMenu();">
-                <i class="fas fa-key"></i>
-                <span>修改密码</span>
-            </button>
-            <div class="mobile-user-menu-divider"></div>
-            <button class="mobile-user-menu-item" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>退出登录</span>
             </button>
         </div>
     </div>
@@ -3514,99 +3450,7 @@
             }
         }
 
-        // 显示修改密码模态框
-        function showChangePasswordModal(event) {
-            if (event) event.stopPropagation();
-            document.getElementById('change-password-modal').classList.add('show');
-            // 关闭下拉菜单
-            const dropdown = document.getElementById('user-dropdown');
-            if (dropdown) dropdown.classList.remove('show');
-        }
-
-        // 关闭修改密码模态框
-        function closeChangePasswordModal() {
-            document.getElementById('change-password-modal').classList.remove('show');
-            // 清空表单
-            document.getElementById('current-password').value = '';
-            document.getElementById('new-password').value = '';
-            document.getElementById('confirm-password').value = '';
-            document.getElementById('password-error').style.display = 'none';
-        }
-
-        // 提交修改密码
-        async function submitChangePassword() {
-            const currentPassword = document.getElementById('current-password').value;
-            const newPassword = document.getElementById('new-password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            const errorDiv = document.getElementById('password-error');
-            const submitBtn = document.getElementById('submit-password-btn');
-
-            // 验证
-            if (!currentPassword || !newPassword || !confirmPassword) {
-                errorDiv.textContent = '请填写所有字段';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            if (newPassword.length < 6) {
-                errorDiv.textContent = '新密码至少6位';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            if (newPassword !== confirmPassword) {
-                errorDiv.textContent = '两次输入的新密码不一致';
-                errorDiv.style.display = 'block';
-                return;
-            }
-
-            errorDiv.style.display = 'none';
-            submitBtn.disabled = true;
-            submitBtn.textContent = '修改中...';
-
-            try {
-                const response = await fetch('/api/user/change-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        current_password: currentPassword,
-                        new_password: newPassword
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showToast('✅ 密码修改成功！', 'success');
-                    closeChangePasswordModal();
-                } else {
-                    errorDiv.textContent = data.error || '修改失败';
-                    errorDiv.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Change password error:', error);
-                errorDiv.textContent = '网络错误，请稍后重试';
-                errorDiv.style.display = 'block';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = '确认修改';
-            }
-        }
-
-        async function logout() {
-            try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                showToast('已登出', 'info');
-                setTimeout(() => {
-                    window.location.href = '/';  // 开源版：跳转到主页
-                }, 500);
-            } catch (error) {
-                console.error('Logout failed:', error);
-            }
-        }
-
-        // 跳转到第一个关键词组
-        async function goToFirstGroup() {
+        function goToFirstGroup() {
             try {
                 const response = await fetch('/api/user/keyword-groups');
                 const data = await response.json();

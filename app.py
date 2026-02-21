@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-V2 Web应用 - 带用户系统的文献推送Web界面
+OnTarget 开源版 - 无需登录的本地文献推送系统
+使用固定账户 localuser
 """
 
 import os
@@ -9,7 +10,6 @@ import threading
 import time
 from datetime import datetime, timedelta
 
-# 添加项目根目录到 Python 路径
 base_dir = os.path.dirname(os.path.abspath(__file__))
 if base_dir not in sys.path:
     sys.path.insert(0, base_dir)
@@ -18,7 +18,6 @@ from functools import wraps
 
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 
-# 加载环境变量（使用绝对路径）
 env_file = os.path.join(base_dir, '.env')
 if os.path.exists(env_file):
     with open(env_file, 'r') as f:
@@ -28,71 +27,48 @@ if os.path.exists(env_file):
                 key, value = line.split('=', 1)
                 os.environ[key] = value
 
-# 导入模块（新目录结构）
 from models.user_manager import UserManager, get_predefined_categories, expand_keywords
 from core.cache_manager import SmartCache
 from services.push_service import PersonalizedPushEngine, PushScheduler
 from core.analyzer import OptimizedAnalyzer, AnalysisQueue
 from core.system import LiteraturePushSystemV2
-#from services.admin_service import AdminManager  # 开源版不需要
 from models.keyword_group_manager import KeywordGroupManager
 from utils.encryption import get_encryption_manager
 
-app = Flask(__name__, template_folder='templates')
-app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+LOCAL_USER_ID = 'localuser'
 
-# 初始化系统 - 使用相对于当前文件的路径
+app = Flask(__name__, template_folder='templates')
+app.secret_key = os.getenv('SECRET_KEY', 'ontarget-open-source-secret-key')
+
 base_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(base_dir, 'data')
 system = LiteraturePushSystemV2(data_dir)
 
-## 初始化管理员管理器
-##admin_manager = AdminManager  # 开源版不需要(
-#data_dir=data_dir,
-#    cache=system.cache,
-#    user_manager=system.user_manager,
-#    analyzer=system.analyzer
-#)
-
-# 初始化关键词组管理器 - V2.3使用SQLite数据库
 keyword_group_manager = KeywordGroupManager(db_path=os.path.join(data_dir, 'literature.db'))
 
-# 初始化加密管理器
 encryption_manager = get_encryption_manager()
 
-
-# ============ 开源版单用户模式 ============
-SINGLE_USER_ID = "default_user"
-# ============ 单用户模式结束 ============
+def ensure_local_user():
+    if not system.user_manager.get_user(LOCAL_USER_ID):
+        system.user_manager.register_user(LOCAL_USER_ID, 'local@localhost', 'localpass', [])
+        print(f"✅ 已自动创建本地用户: {LOCAL_USER_ID}")
+    return LOCAL_USER_ID
+encryption_manager = get_encryption_manager()
 
 # ============ API限流配置 (V2.6) ============
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-def get_limit_auth():
-    """获取当前用户的ID用于限流"""
-    return session.get('user_id', get_remote_address())
-
 limiter = Limiter(
     app=app,
-    key_func=get_limit_auth,
+    key_func=get_remote_address,
     default_limits=["200 per hour", "50 per minute"],
     storage_uri="memory://"
 )
 
-# 公开限流（登录、注册等）
-public_limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["10 per minute", "5 per minute"]
-)
-# ============ 限流配置结束 ============
-
-# 初始化自动更新服务
 from services.auto_update_service import AutoUpdateService
 auto_update_service = AutoUpdateService(system, keyword_group_manager)
 
-# ============ 限流错误处理 ============
 @app.errorhandler(429)
 def ratelimit_handler(e):
     return jsonify({
@@ -100,26 +76,17 @@ def ratelimit_handler(e):
         'error': '请求过于频繁，请稍后再试',
         'retry_after': e.description
     }), 429
-# ============ 限流错误处理结束 ============
 
-# ============ HTTP安全头 ============
 @app.after_request
 def add_security_headers(response):
-    """添加HTTP安全头"""
-    # 防止点击劫持
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    # 防止MIME类型嗅探
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    # XSS保护
     response.headers['X-XSS-Protection'] = '1; mode=block'
-    # 引用策略
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    # 禁用缓存敏感页面
-    if request.path.startswith('/api/') or request.path in ['/login', '/register', '/forgot-password']:
+    if request.path.startswith('/api/'):
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
     return response
-# ============ HTTP安全头结束 ============
 
 # ============ 异步更新任务管理 ============
 # 存储更新任务状态: {user_id: {'status': 'running'|'completed'|'failed', 'result': {...}, 'started_at': ..., 'completed_at': ...}}
@@ -182,7 +149,6 @@ def run_update_task(user_id):
             }
 
 def cleanup_old_tasks():
-    """清理超过1小时的旧任务记录"""
     with update_tasks_lock:
         now = datetime.now()
         expired_users = []
@@ -193,11 +159,10 @@ def cleanup_old_tasks():
             del update_tasks[user_id]
             print(f"[清理] 已删除用户 {user_id} 的旧任务记录")
 
-# 定期清理旧任务
 def start_cleanup_timer():
     def cleanup_loop():
         while True:
-            time.sleep(1800)  # 每30分钟清理一次
+            time.sleep(1800)
             cleanup_old_tasks()
     
     cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
@@ -205,14 +170,13 @@ def start_cleanup_timer():
     print("[系统] 后台清理任务已启动")
 
 start_cleanup_timer()
-# ============ 异步更新任务管理结束 ============
 
-# 初始化数据库（确保表已创建）
 from models.simple_db import get_db
 _db = get_db()
 print("✅ 数据库初始化完成")
 
-# 启动自动更新服务（如果不在调试模式的重新加载进程中）
+ensure_local_user()
+
 if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     try:
         auto_update_service.start()
@@ -220,296 +184,39 @@ if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     except Exception as e:
         print(f"⚠️ 自动更新服务启动失败: {e}")
 
-# 登录验证装饰器
+def get_current_user_id():
+    ensure_local_user()
+    return LOCAL_USER_ID
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'success': False, 'error': '请先登录', 'redirect': '/login'}), 401
+        get_current_user_id() = LOCAL_USER_ID
+        session['username'] = LOCAL_USER_ID
         return f(*args, **kwargs)
     return decorated_function
 
-# 管理员权限验证装饰器
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'success': False, 'error': '请先登录', 'redirect': '/login'}), 401
-        
-        # 检查用户是否是管理员
-        user_id = SINGLE_USER_ID
-        user = system.user_manager.get_user(user_id)
-        
-        if not user:
-            return jsonify({'success': False, 'error': '用户不存在'}), 404
-        
-        # 检查is_admin字段或邮箱白名单
-        is_admin = user.get('is_admin', False)
-        admin_emails = ['admin@example.com', 'caolongzhi@example.com']
-        user_email = user.get('email', '').lower()
-        
-        if not is_admin and user_email not in [e.lower() for e in admin_emails]:
-            return jsonify({'success': False, 'error': '需要管理员权限'}), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
-
-# 主页 - 展示页面
 @app.route('/')
 def index():
-    """主页 - 如果未登录显示展示页，否则显示文献列表"""
-    if True:  # 单用户模式
-        return render_template('v2_dashboard.html')
-    return render_template('v2_landing.html')
+    ensure_local_user()
+    groups = keyword_group_manager.get_user_groups(LOCAL_USER_ID)
+    if not groups:
+        return redirect('/keywords')
+    return render_template('v2_dashboard.html')
 
-# 关键词设置页面
 @app.route('/keywords')
+@login_required
 def keywords_page():
     return render_template('v2_keywords.html')
 
-# 登录页面
-# 已移除：@app.route('/login')
-def login_page():
-    if True:  # 单用户模式
-        return redirect('/')
-    return render_template('v2_login.html')
-
-# 注册页面
-# 已移除：@app.route('/register')
-def register_page():
-    if True:  # 单用户模式
-        return redirect('/')
-    return render_template('v2_register.html')
-    
-# API: 用户注册
-# 已移除：@app.route('/api/auth/register', methods=['POST'])
-def api_register():
-    """用户注册API"""
-    data = request.json
-    
-    if not data:
-        return jsonify({'success': False, 'error': '无效的请求数据'}), 400
-    
-    username = data.get('username', '').strip()
-    email = data.get('email', '').strip()
-    password = data.get('password', '')
-    selected_categories = data.get('categories', [])
-    custom_keywords = data.get('custom_keywords', '')
-    
-    # 验证输入
-    if not username or not email or not password:
-        return jsonify({'success': False, 'error': '请填写所有必填项'}), 400
-    
-    if len(password) < 6:
-        return jsonify({'success': False, 'error': '密码至少6位'}), 400
-    
-    # 展开关键词
-    keywords = expand_keywords(selected_categories)
-    if custom_keywords:
-        custom_list = [k.strip() for k in custom_keywords.split(',') if k.strip()]
-        keywords.extend(custom_list)
-    
-    # 去重
-    keywords = list(set(keywords))
-    
-    # 获取安全问题
-    security_question = data.get('security_question', '')
-    security_answer = data.get('security_answer', '')
-    
-    # 获取文献源
-    selected_sources = data.get('sources', ['pubmed', 'biorxiv', 'medrxiv', 'arxiv'])
-    custom_sources = data.get('custom_sources', '')
-    
-    # 注册用户
-    result = system.user_manager.register_user_with_security(
-        username, email, password, keywords, 
-        security_question if security_question else None,
-        security_answer if security_answer else None
-    )
-    
-    if result['success']:
-        # 自动登录
-        SINGLE_USER_ID = result['user_id']
-        session['username'] = result['username']
-        
-        # 保存文献源偏好
-        try:
-            prefs = {
-                'sources': selected_sources,
-                'custom_sources': custom_sources  # 记录但不立即使用
-            }
-            system.user_manager.update_preferences(result['user_id'], prefs)
-        except Exception as e:
-            print(f"保存文献源偏好失败: {e}")
-        
-        # 自动为用户创建默认关键词组
-        try:
-            if keywords:  # 只有在有关键词时才创建组
-                # 获取分类信息以确定图标和颜色
-                categories_dict = get_predefined_categories()
-                group_icon = '📚'
-                group_color = '#5a9a8f'
-                group_name = '我的文献'
-                
-                # 如果有选择分类，使用第一个分类的信息
-                if selected_categories and len(selected_categories) > 0:
-                    first_category = selected_categories[0]
-                    if first_category in categories_dict:
-                        group_icon = categories_dict[first_category].get('icon', '📚')
-                        group_name = first_category
-                    else:
-                        group_name = first_category
-                
-                # 创建关键词组
-                keyword_group_manager.create_group(
-                    user_id=result['user_id'],
-                    name=group_name,
-                    keywords=keywords,
-                    icon=group_icon,
-                    color=group_color,
-                    description=f'{group_name} - 注册时自动创建',
-                    match_mode='any',
-                    min_match_score=0.3
-                )
-        except Exception as e:
-            print(f"创建默认关键词组失败: {e}")
-            # 创建组失败不影响注册流程
-        
-        return jsonify({
-            'success': True,
-            'user_id': result['user_id'],
-            'username': result['username'],
-            'keywords': keywords,
-            'redirect': '/keywords'
-        })
-    else:
-        return jsonify({'success': False, 'error': result['error']}), 400
-
-# API: 用户登录
-# 已移除：@app.route('/api/auth/login', methods=['POST'])
-def api_login():
-    """用户登录API"""
-    data = request.json
-    
-    if not data:
-        return jsonify({'success': False, 'error': '无效的请求数据'}), 400
-    
-    username_or_email = data.get('username', '').strip()
-    password = data.get('password', '')
-    
-    if not username_or_email or not password:
-        return jsonify({'success': False, 'error': '请输入用户名/邮箱和密码'}), 400
-    
-    result = system.user_manager.login(username_or_email, password)
-    
-    if result['success']:
-        SINGLE_USER_ID = result['user']['id']
-        session['username'] = result['user']['username']
-        
-        return jsonify({
-            'success': True,
-            'user': result['user'],
-            'redirect': '/keywords'
-        })
-    else:
-        return jsonify({'success': False, 'error': result['error']}), 401
-
-# API: 根据用户名获取用户公开信息（头像）
 @app.route('/api/user/public/<username>')
 def api_get_user_public(username):
-    """获取用户公开信息（用于登录页面显示头像）"""
-    if not username:
-        return jsonify({'success': False, 'error': '用户名不能为空'}), 400
-    
-    # 尝试通过用户名或邮箱查找用户
-    user = system.user_manager.get_user_by_username(username)
-    if not user:
-        user = system.user_manager.get_user_by_email(username)
-    
-    if user:
-        return jsonify({
-            'success': True,
-            'username': user.get('username'),
-            'avatar': user.get('avatar', '')
-        })
-    else:
-        return jsonify({'success': False, 'error': '用户不存在'}), 404
+    return jsonify({'success': False, 'error': '开源版不支持公开用户页面'}), 404
 
-# API: 用户登出
-# 已移除：@app.route('/api/auth/logout', methods=['POST'])
-def api_logout():
-    """用户登出API"""
-    system.user_manager.logout(session.get('session_token', ''))
-    session.clear()
-    return jsonify({'success': True, 'message': '已登出'})
-
-# 忘记密码页面
-# 已移除：@app.route('/forgot-password')
-def forgot_password_page():
-    """忘记密码页面"""
-    if True:  # 单用户模式
-        return redirect('/')
-    return render_template('v2_forgot_password.html')
-
-# API: 获取安全问题
-# 已移除：@app.route('/api/auth/forgot-password', methods=['POST'])
-def api_forgot_password():
-    """忘记密码 - 获取安全问题"""
-    data = request.json
-    if not data:
-        return jsonify({'success': False, 'error': '无效的请求数据'}), 400
-    
-    username = data.get('username', '').strip()
-    if not username:
-        return jsonify({'success': False, 'error': '请输入用户名或邮箱'}), 400
-    
-    result = system.user_manager.get_security_question(username)
-    return jsonify(result)
-
-# API: 验证安全问题答案
-@app.route('/api/auth/verify-security', methods=['POST'])
-def api_verify_security():
-    """验证安全问题答案"""
-    data = request.json
-    if not data:
-        return jsonify({'success': False, 'error': '无效的请求数据'}), 400
-    
-    username = data.get('username', '').strip()
-    answer = data.get('answer', '').strip()
-    
-    if not username or not answer:
-        return jsonify({'success': False, 'error': '请填写所有必填项'}), 400
-    
-    result = system.user_manager.verify_security_answer(username, answer)
-    return jsonify(result)
-
-# API: 重置密码
-# 已移除：@app.route('/api/auth/reset-password', methods=['POST'])
-def api_reset_password():
-    """重置密码"""
-    data = request.json
-    if not data:
-        return jsonify({'success': False, 'error': '无效的请求数据'}), 400
-    
-    user_id = data.get('user_id', '')
-    new_password = data.get('new_password', '')
-    
-    if not user_id or not new_password:
-        return jsonify({'success': False, 'error': '缺少必要参数'}), 400
-    
-    if len(new_password) < 6:
-        return jsonify({'success': False, 'error': '密码至少6位'}), 400
-    
-    result = system.user_manager.reset_password(user_id, new_password)
-    return jsonify(result)
-
-# API: 获取当前用户信息
 @app.route('/api/user/me')
+@login_required
 def api_get_user():
-    """获取当前用户信息"""
-    user_id = SINGLE_USER_ID
-    
-    # 从数据库获取用户信息（包括头像）
+    user_id = get_current_user_id()
     user = system.user_manager.get_user(user_id)
     if user:
         return jsonify({
@@ -524,15 +231,16 @@ def api_get_user():
                 'stats': system.push_engine.get_user_stats(user_id)
             }
         })
-    
     return jsonify({'success': False, 'error': '用户不存在'}), 404
+
 
 # API: 更新用户关键词
 @app.route('/api/user/keywords', methods=['POST'])
+@login_required
 def api_update_keywords():
     """更新用户关键词"""
     data = request.json
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     selected_categories = data.get('categories', [])
     custom_keywords = data.get('custom_keywords', '')
@@ -560,9 +268,10 @@ def api_update_keywords():
 
 # API: 获取用户的关键词组列表
 @app.route('/api/user/keyword-groups')
+@login_required
 def api_get_keyword_groups():
     """获取用户的所有关键词组"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 检查是否包含已禁用的组
     include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
@@ -577,9 +286,10 @@ def api_get_keyword_groups():
 
 # API: 获取用户关键词组汇总（用于Dashboard）
 @app.route('/api/user/keyword-groups/summary')
+@login_required
 def api_get_keyword_groups_summary():
     """获取用户关键词组的汇总信息"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     summary = keyword_group_manager.get_user_groups_summary(user_id)
     
@@ -590,9 +300,10 @@ def api_get_keyword_groups_summary():
 
 # API: 创建关键词组
 @app.route('/api/user/keyword-groups', methods=['POST'])
+@login_required
 def api_create_keyword_group():
     """创建新的关键词组"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     data = request.json
     
     # 验证必填字段
@@ -629,9 +340,10 @@ def api_create_keyword_group():
 
 # API: 更新关键词组
 @app.route('/api/user/keyword-groups/<group_id>', methods=['PUT'])
+@login_required
 def api_update_keyword_group(group_id):
     """更新关键词组"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     data = request.json
     
     # 检查组是否存在
@@ -653,9 +365,10 @@ def api_update_keyword_group(group_id):
 
 # API: 删除关键词组
 @app.route('/api/user/keyword-groups/<group_id>', methods=['DELETE'])
+@login_required
 def api_delete_keyword_group(group_id):
     """删除关键词组"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     result = keyword_group_manager.delete_group(user_id, group_id)
     
@@ -669,9 +382,10 @@ def api_delete_keyword_group(group_id):
 
 # API: 重新排序关键词组
 @app.route('/api/user/keyword-groups/reorder', methods=['PUT'])
+@login_required
 def api_reorder_keyword_groups():
     """重新排序关键词组"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     data = request.json
     group_order = data.get('group_order', [])
     
@@ -690,9 +404,10 @@ def api_reorder_keyword_groups():
 
 # API: 获取特定关键词组的文献
 @app.route('/api/user/keyword-groups/<group_id>/papers')
+@login_required
 def api_get_group_papers(group_id):
     """获取特定关键词组的个性化文献"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 获取组信息
     group = keyword_group_manager.get_group(user_id, group_id)
@@ -747,9 +462,10 @@ def api_get_group_papers(group_id):
 
 # API: 在特定组中收藏文献
 @app.route('/api/user/keyword-groups/<group_id>/papers/<paper_hash>/save', methods=['POST'])
+@login_required
 def api_save_paper_to_group(group_id, paper_hash):
     """在特定关键词组中收藏文献"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 检查组是否存在
     group = keyword_group_manager.get_group(user_id, group_id)
@@ -769,9 +485,10 @@ def api_save_paper_to_group(group_id, paper_hash):
 
 # API: 在特定组中取消收藏文献
 @app.route('/api/user/keyword-groups/<group_id>/papers/<paper_hash>/save', methods=['DELETE'])
+@login_required
 def api_unsave_paper_from_group(group_id, paper_hash):
     """在特定关键词组中取消收藏文献"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 检查组是否存在
     group = keyword_group_manager.get_group(user_id, group_id)
@@ -811,9 +528,10 @@ def api_get_categories():
 
 # API: 获取用户设置
 @app.route('/api/user/settings')
+@login_required
 def api_get_user_settings():
     """获取用户设置"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     settings = system.user_manager.get_user_settings(user_id)
     
@@ -827,9 +545,10 @@ def api_get_user_settings():
 
 # API: 更新用户设置
 @app.route('/api/user/settings', methods=['PUT'])
+@login_required
 def api_update_user_settings():
     """更新用户设置"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     data = request.get_json()
     
     if not data:
@@ -882,7 +601,8 @@ def api_get_system_api_info():
     })
 
 # API: 修改密码
-# 已移除：@app.route('/api/user/change-password', methods=['POST'])
+@app.route('/api/user/change-password', methods=['POST'])
+@login_required
 def api_change_password():
     """修改用户密码"""
     data = request.get_json()
@@ -898,7 +618,7 @@ def api_change_password():
     if len(new_password) < 6:
         return jsonify({'success': False, 'error': '新密码至少6位'}), 400
     
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 验证当前密码
     user = system.user_manager.get_user(user_id)
@@ -936,9 +656,10 @@ def api_get_available_sources():
 
         # API: 获取个性化文献推送
 @app.route('/api/papers/personalized')
+@login_required
 def api_get_personalized_papers():
     """获取个性化文献列表（V2.6 支持分页）"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
 
     if not user_id:
         return jsonify({'success': False, 'error': '用户不存在'}), 404
@@ -1114,10 +835,11 @@ def api_get_personalized_papers():
 
 # API: 保存/取消保存文献
 @app.route('/api/papers/save', methods=['POST'])
+@login_required
 def api_save_paper():
     """保存文献到关键词组"""
     data = request.json
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     paper_hash = data.get('paper_hash')
     group_id = data.get('group_id')
     
@@ -1139,10 +861,11 @@ def api_save_paper():
         return jsonify(result), 400
 
 @app.route('/api/papers/unsave', methods=['POST'])
+@login_required
 def api_unsave_paper():
     """从关键词组取消保存文献"""
     data = request.json
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     paper_hash = data.get('paper_hash')
     group_id = data.get('group_id')
     
@@ -1165,9 +888,10 @@ def api_unsave_paper():
 
 # API: 获取文献在哪些组被收藏
 @app.route('/api/papers/<paper_hash>/saved-groups', methods=['GET'])
+@login_required
 def api_get_paper_saved_groups(paper_hash):
     """获取文献收藏的所有组"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 获取用户的所有组
     groups = keyword_group_manager.get_user_groups(user_id, include_inactive=False)
@@ -1193,10 +917,11 @@ def api_get_paper_saved_groups(paper_hash):
 
 # API: 触发更新
 @app.route('/api/trigger-update', methods=['POST'])
+@login_required
 @limiter.limit("3 per minute")
 def api_trigger_update():
     """手动触发文献更新 - 异步版本"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 清理旧任务记录
     cleanup_old_tasks()
@@ -1232,9 +957,10 @@ def api_trigger_update():
 
 # API: 查询更新状态
 @app.route('/api/update-status', methods=['GET'])
+@login_required
 def api_get_update_status():
     """获取当前更新任务状态"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     with update_tasks_lock:
         if user_id not in update_tasks:
@@ -1261,29 +987,11 @@ def api_get_update_status():
         
         return jsonify(response)
 
-# API: 批量更新（管理员用）
-# 已移除：@app.route('/api/admin/batch-update', methods=['POST'])
-def api_batch_update():
-    """批量更新所有用户"""
-    # 这里可以添加管理员权限检查
-    
-    try:
-        result = system.run_batch_for_all_users()
-        return jsonify({
-            'success': True,
-            'result': result
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 获取系统统计
 @app.route('/api/stats')
+@login_required
 def api_get_stats():
     """获取系统统计"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 获取该用户所有关键词组的文献总数
     user_groups = keyword_group_manager.get_user_groups(user_id)
@@ -1320,9 +1028,10 @@ def api_get_stats():
 
 # API: 分析待处理文献
 @app.route('/api/analyze-pending', methods=['POST'])
+@login_required
 def api_analyze_pending():
     """分析待处理的文献"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     # 获取用户关键词
     if user_id not in system.user_manager.users:
@@ -1414,10 +1123,11 @@ def api_analyze_pending():
 
 # API: 分析单篇文献 (V2.6 异步版本)
 @app.route('/api/analyze-paper', methods=['POST'])
+@login_required
 @limiter.limit("10 per minute")
 def api_analyze_paper():
     """分析单篇文献 - V2.6 支持异步队列"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     data = request.get_json()
     paper_hash = data.get('paper_hash')
     # V2.6: 新增 async 参数，支持同步或异步模式
@@ -1599,6 +1309,7 @@ def api_analyze_paper():
 
 # API: 查询分析任务状态 (V2.6 新增)
 @app.route('/api/analyze-status/<task_id>')
+@login_required
 def api_analyze_status(task_id):
     """查询异步分析任务状态"""
     try:
@@ -1625,340 +1336,11 @@ def api_analyze_status(task_id):
             'error': str(e)
         }), 500
 
-# API: 获取缓存统计 (V2.6 增强版)
-# 已移除：@app.route('/api/admin/cache-stats')
-def api_get_cache_stats():
-    """获取缓存统计（管理员用）- V2.6 包含内存缓存统计"""
-    cache_stats = system.cache.get_cache_stats()
-
-    # V2.6: 添加内存缓存统计
-    memory_stats = {}
-    try:
-        from core.memory_cache import get_memory_cache
-        memory_stats = get_memory_cache().get_stats()
-    except Exception as e:
-        memory_stats = {'error': str(e)}
-
-    # V2.6: 添加异步队列统计
-    queue_stats = {}
-    try:
-        from core.async_queue import get_analysis_queue
-        queue_stats = get_analysis_queue().get_stats()
-    except Exception as e:
-        queue_stats = {'error': str(e)}
-
-    return jsonify({
-        'success': True,
-        'v2_6_optimizations': {
-            'sqlite_wal_mode': True,
-            'memory_cache': True,
-            'pagination': True,
-            'async_analysis': True
-        },
-        'cache': cache_stats,
-        'memory_cache': memory_stats,
-        'async_queue': queue_stats,
-        'analyzer': system.analyzer.get_stats()
-    })
-
-# API: 执行系统清理
-# 已移除：@app.route('/api/admin/cleanup', methods=['POST'])
-def api_cleanup():
-    """执行系统清理"""
-    try:
-        result = system.cleanup()
-        return jsonify({
-            'success': True,
-            'result': result
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# 管理员验证装饰器
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'success': False, 'error': '请先登录', 'redirect': '/login'}), 401
-        
-        user_id = SINGLE_USER_ID
-        if not admin_manager.is_admin(user_id):
-            return jsonify({'success': False, 'error': '需要管理员权限'}), 403
-        
-        return f(*args, **kwargs)
-    return decorated_function
-
-# 后台管理页面
-@app.route('/admin')
-def admin_dashboard():
-    """后台管理页面"""
-    user_id = SINGLE_USER_ID
-    if not admin_manager.is_admin(user_id):
-        return redirect('/')
-    return render_template('v2_admin.html')
-
-# API: 获取管理员面板数据
-@app.route('/api/admin/dashboard')
-def api_admin_dashboard():
-    """获取管理员面板概览数据"""
-    try:
-        stats = admin_manager.get_system_stats()
-        return jsonify({
-            'success': True,
-            'stats': stats
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 获取所有用户
-@app.route('/api/admin/users')
-def api_admin_users():
-    """获取所有用户列表"""
-    try:
-        users = admin_manager.get_all_users()
-        return jsonify({
-            'success': True,
-            'users': users
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 获取用户详情
-@app.route('/api/admin/users/<user_id>')
-def api_admin_user_detail(user_id):
-    """获取用户详细信息"""
-    try:
-        user = admin_manager.get_user_details(user_id)
-        if not user:
-            return jsonify({
-                'success': False,
-                'error': '用户不存在'
-            }), 404
-        
-        return jsonify({
-            'success': True,
-            'user': user
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 更新用户信息
-@app.route('/api/admin/users/<user_id>', methods=['PUT'])
-def api_admin_update_user(user_id):
-    """更新用户信息"""
-    try:
-        data = request.get_json()
-        success = admin_manager.update_user(user_id, data)
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'message': '用户更新成功'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': '用户更新失败'
-            }), 400
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 删除用户
-@app.route('/api/admin/users/<user_id>', methods=['DELETE'])
-def api_admin_delete_user(user_id):
-    """删除用户"""
-    try:
-        success = admin_manager.delete_user(user_id)
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'message': '用户已删除'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': '用户删除失败'
-            }), 400
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 重置用户密码
-@app.route('/api/admin/users/<user_id>/reset-password', methods=['POST'])
-def api_admin_reset_password(user_id):
-    """重置用户密码"""
-    try:
-        data = request.get_json()
-        new_password = data.get('new_password')
-        
-        if not new_password:
-            return jsonify({
-                'success': False,
-                'error': '请提供新密码'
-            }), 400
-        
-        success = admin_manager.reset_user_password(user_id, new_password)
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'message': '密码重置成功'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': '密码重置失败'
-            }), 400
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 获取所有文献
-@app.route('/api/admin/papers')
-def api_admin_papers():
-    """获取所有文献列表"""
-    try:
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
-        
-        result = admin_manager.get_all_papers(limit=limit, offset=offset)
-        return jsonify({
-            'success': True,
-            **result
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 删除文献
-@app.route('/api/admin/papers/<paper_hash>', methods=['DELETE'])
-def api_admin_delete_paper(paper_hash):
-    """删除文献"""
-    try:
-        success = admin_manager.delete_paper(paper_hash)
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'message': '文献已删除'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': '文献删除失败'
-            }), 400
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 获取系统配置
-@app.route('/api/admin/config')
-def api_admin_config():
-    """获取系统配置"""
-    try:
-        config = admin_manager.get_config()
-        return jsonify({
-            'success': True,
-            'config': config
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 更新系统配置
-@app.route('/api/admin/config', methods=['PUT'])
-def api_admin_update_config():
-    """更新系统配置"""
-    try:
-        data = request.get_json()
-        admin_manager.save_config(data)
-        
-        return jsonify({
-            'success': True,
-            'message': '配置已更新'
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 获取操作日志
-@app.route('/api/admin/logs')
-def api_admin_logs():
-    """获取管理员操作日志"""
-    try:
-        limit = request.args.get('limit', 100, type=int)
-        logs = admin_manager.get_logs(limit=limit)
-        
-        return jsonify({
-            'success': True,
-            'logs': logs
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# API: 清理缓存
-@app.route('/api/admin/clear-cache', methods=['POST'])
-def api_admin_clear_cache():
-    """清理系统缓存"""
-    try:
-        data = request.get_json() or {}
-        cache_type = data.get('type', 'all')
-        
-        success = admin_manager.clear_cache(cache_type)
-        
-        if success:
-            return jsonify({
-                'success': True,
-                'message': f'{cache_type} 缓存已清理'
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': '缓存清理失败'
-            }), 400
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-# ============ 自动更新相关 API ============
-
 @app.route('/api/user/auto-update-settings', methods=['GET'])
+@login_required
 def api_get_auto_update_settings():
     """获取用户自动更新设置"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     try:
         settings = auto_update_service.get_user_schedule_info(user_id)
@@ -1975,9 +1357,10 @@ def api_get_auto_update_settings():
         }), 500
 
 @app.route('/api/user/auto-update-settings', methods=['PUT'])
+@login_required
 def api_save_auto_update_settings():
     """保存用户自动更新设置"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     data = request.get_json()
     
     if data is None:
@@ -2010,9 +1393,10 @@ def api_save_auto_update_settings():
         }), 500
 
 @app.route('/api/user/last-update-info')
+@login_required
 def api_get_last_update_info():
     """获取用户最后更新信息"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     try:
         info = auto_update_service.get_user_schedule_info(user_id)
@@ -2030,9 +1414,10 @@ def api_get_last_update_info():
         }), 500
 
 @app.route('/api/user/all-saved-papers')
+@login_required
 def api_get_all_saved_papers():
     """获取用户所有收藏的文献（跨所有组）"""
-    user_id = SINGLE_USER_ID
+    user_id = get_current_user_id()
     
     try:
         # 获取所有收藏的文献哈希
@@ -2086,7 +1471,7 @@ def api_health():
 
 if __name__ == '__main__':
     host = os.getenv('WEB_HOST', '0.0.0.0')
-    port = int(os.getenv('WEB_PORT', '5500'))
+    port = int(os.getenv('WEB_PORT', '5000'))
     debug = os.getenv('WEB_DEBUG', 'True').lower() == 'true'
     
     print(f"\n{'='*60}")
