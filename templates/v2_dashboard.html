@@ -3450,7 +3450,7 @@
             }
         }
 
-        function goToFirstGroup() {
+        async function goToFirstGroup() {
             try {
                 const response = await fetch('/api/user/keyword-groups');
                 const data = await response.json();
