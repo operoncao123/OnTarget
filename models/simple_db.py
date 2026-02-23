@@ -27,11 +27,23 @@ class SimpleDatabase:
         """初始化数据库"""
         # 确保目录存在
         db_dir = os.path.dirname(self.db_path)
-        if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir, exist_ok=True)
+        print(f"[DEBUG] 数据库路径: {self.db_path}")
+        print(f"[DEBUG] 数据库目录: {db_dir}")
+        
+        if db_dir:
+            try:
+                os.makedirs(db_dir, exist_ok=True)
+                print(f"[DEBUG] 目录创建成功: {db_dir}")
+            except Exception as e:
+                print(f"[DEBUG] 创建目录失败: {e}")
         
         # 连接数据库（会自动创建文件）
-        conn = sqlite3.connect(self.db_path)
+        try:
+            conn = sqlite3.connect(self.db_path)
+            print(f"[DEBUG] 数据库连接成功")
+        except Exception as e:
+            print(f"[DEBUG] 数据库连接失败: {e}")
+            raise
         cursor = conn.cursor()
         
         # 创建用户表
