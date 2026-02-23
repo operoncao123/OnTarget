@@ -49,14 +49,24 @@ keyword_group_manager = KeywordGroupManager(db_path=os.path.join(data_dir, 'lite
 encryption_manager = get_encryption_manager()
 
 def ensure_local_user():
-    user = system.user_manager.get_user_by_username(LOCAL_USER_ID)
-    if not user:
-        result = system.user_manager.register_user(LOCAL_USER_ID, 'local@localhost', 'localpass', [])
-        if result.get('success'):
-            print(f"✅ 已自动创建本地用户: {LOCAL_USER_ID}")
-        else:
-            print(f"⚠️ 创建本地用户失败: {result.get('error')}")
-    return LOCAL_USER_ID
+    # 先通过邮箱检查用户是否已存在
+    existing_user = system.user_manager.get_user_by_email('local@localhost')
+    if existing_user:
+        return existing_user['id']
+    
+    # 检查 username
+    existing_user = system.user_manager.get_user_by_username(LOCAL_USER_ID)
+    if existing_user:
+        return existing_user['id']
+    
+    # 创建新用户
+    result = system.user_manager.register_user(LOCAL_USER_ID, 'local@localhost', 'localpass', [])
+    if result.get('success'):
+        print(f"✅ 已自动创建本地用户: {LOCAL_USER_ID}")
+        return result.get('user_id', LOCAL_USER_ID)
+    else:
+        print(f"⚠️ 创建本地用户失败: {result.get('error')}")
+        return LOCAL_USER_ID
 
 # ============ API限流配置 (V2.6) ============
 from flask_limiter import Limiter
