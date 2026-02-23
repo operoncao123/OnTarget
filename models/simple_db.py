@@ -42,7 +42,8 @@ class SimpleDatabase:
                 is_admin INTEGER DEFAULT 0,
                 created_at TEXT,
                 last_login TEXT,
-                preferences TEXT
+                preferences TEXT,
+                avatar TEXT
             )
         ''')
         
@@ -174,7 +175,37 @@ class SimpleDatabase:
         
         conn.commit()
         conn.close()
+        
+        # 数据库迁移：添加缺失的列
+        self._migrate_add_columns()
+        
         print(f"✅ 数据库初始化完成: {self.db_path}")
+    
+    def _migrate_add_columns(self):
+        """数据库迁移：添加缺失的列"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # 检查 users 表是否有 avatar 列
+        cursor.execute("PRAGMA table_info(users)")
+        columns = [row['name'] for row in cursor.fetchall()]
+        
+        if 'avatar' not in columns:
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
+                print("✅ 数据库迁移: 已添加 avatar 列")
+            except Exception as e:
+                print(f"⚠️ 添加 avatar 列失败: {e}")
+        
+        if 'preferences' not in columns:
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN preferences TEXT")
+                print("✅ 数据库迁移: 已添加 preferences 列")
+            except Exception as e:
+                print(f"⚠️ 添加 preferences 列失败: {e}")
+        
+        conn.commit()
+        conn.close()
     
     def get_connection(self):
         """获取数据库连接"""
