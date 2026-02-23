@@ -63,6 +63,10 @@ def ensure_local_user():
     result = system.user_manager.register_user(LOCAL_USER_ID, 'local@localhost', 'localpass', [])
     if result.get('success'):
         print(f"✅ 已自动创建本地用户: {LOCAL_USER_ID}")
+        # 重新获取用户以获取正确的 id
+        new_user = system.user_manager.get_user_by_username(LOCAL_USER_ID)
+        if new_user:
+            return new_user['id']
         return result.get('user_id', LOCAL_USER_ID)
     else:
         print(f"⚠️ 创建本地用户失败: {result.get('error')}")
@@ -204,18 +208,19 @@ def get_current_user_id():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        session['user_id'] = LOCAL_USER_ID
+        user_id = ensure_local_user()
+        session['user_id'] = user_id
         session['username'] = LOCAL_USER_ID
         return f(*args, **kwargs)
     return decorated_function
 
 @app.route('/')
 def index():
-    ensure_local_user()
-    groups = keyword_group_manager.get_user_groups(LOCAL_USER_ID)
+    user_id = ensure_local_user()
+    groups = keyword_group_manager.get_user_groups(user_id)
     if not groups:
         return redirect('/keywords')
-    return render_template('v2_dashboard.html')
+    return render_template('v2_dashboard.html', user_id=user_id)
 
 @app.route('/keywords')
 @login_required
