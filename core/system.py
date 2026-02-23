@@ -72,8 +72,8 @@ class LiteraturePushSystemV2:
         self.push_scheduler = PushScheduler(self.push_engine)
         
         # 初始化Fetcher（复用v1）
-        pubmed_email = os.getenv('PUBMED_EMAIL')
-        self.fetcher = PaperFetcher(pubmed_email) if pubmed_email else None
+        pubmed_email = os.getenv('PUBMED_EMAIL', 'ontarget@example.com')
+        self.fetcher = PaperFetcher(pubmed_email)
         self.impact_factor_fetcher = ImpactFactorFetcher()
         
         # 系统配置
@@ -192,10 +192,6 @@ class LiteraturePushSystemV2:
             else:
                 # 2. 从各源获取文献
                 print("[2/5] 从各源获取文献...")
-                if not self.fetcher:
-                    result['errors'].append("PubMed邮箱未配置")
-                    return result
-                
                 print(f"   - 文献源: {', '.join(user_sources)}")
                 papers = self.fetcher.fetch_all(user_keywords, days_back, sources=user_sources)
                 result['fetched'] = len(papers)
