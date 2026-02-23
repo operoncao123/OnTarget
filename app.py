@@ -211,14 +211,20 @@ if not app.debug or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     except Exception as e:
         print(f"⚠️ 自动更新服务启动失败: {e}")
 
+_LOCAL_USER_ID_CACHE = None
+
 def get_current_user_id():
-    ensure_local_user()
-    return LOCAL_USER_ID
+    global _LOCAL_USER_ID_CACHE
+    if _LOCAL_USER_ID_CACHE:
+        return _LOCAL_USER_ID_CACHE
+    user_id = ensure_local_user()
+    _LOCAL_USER_ID_CACHE = user_id
+    return user_id
 
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user_id = ensure_local_user()
+        user_id = get_current_user_id()
         session['user_id'] = user_id
         session['username'] = LOCAL_USER_ID
         return f(*args, **kwargs)
@@ -226,7 +232,7 @@ def login_required(f):
 
 @app.route('/')
 def index():
-    user_id = ensure_local_user()
+    user_id = get_current_user_id()
     groups = keyword_group_manager.get_user_groups(user_id)
     if not groups:
         return redirect('/keywords')
