@@ -124,13 +124,13 @@ class QueryWrapper:
 
 def get_db_session(db_path=None):
     """获取数据库会话（兼容函数）"""
-    return DBSession()
+    return DBSession(db_path)
 
 class DBSession:
     """数据库会话类，模拟SQLAlchemy Session"""
     
-    def __init__(self):
-        self.db = get_db()
+    def __init__(self, db_path=None):
+        self.db = get_db(db_path)
         self._pending = []
     
     def query(self, model_class):

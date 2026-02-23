@@ -752,12 +752,16 @@ def api_get_personalized_papers():
 
         # 从缓存获取所有文献并筛选
         all_papers = list(system.cache.papers_cache.values())
+        print(f"[DEBUG] 获取到 {len(all_papers)} 篇文献从缓存")
+        print(f"[DEBUG] 关键词组关键词: {group.get('keywords', [])}")
+        
         scored_papers = system.push_engine.get_personalized_papers_for_group(
             user_id=user_id,
             group=group,
             available_papers=all_papers,
             limit=100  # 内部限制最多返回100篇，避免内存溢出
         )
+        print(f"[DEBUG] 匹配到 {len(scored_papers)} 篇文献")
 
         # 标记是否已在当前组收藏
         for paper in scored_papers:
