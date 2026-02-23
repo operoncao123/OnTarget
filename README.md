@@ -16,7 +16,7 @@
 
 ## 🌟 在线服务
 
-不想自己部署？欢迎使用我们的在线服务：
+不想自己部署？欢迎使用在线服务：
 
 👉 **[ontarget.chat](https://ontarget.chat)**
 
@@ -53,10 +53,10 @@ OnTarget 是一个智能的个性化文献推送系统，帮助你自动跟踪�
 
 | 来源 | 类型 | 更新频率 |
 |------|------|---------|
-| PubMed | 期刊论文 | 实时 |
-| bioRxiv | 生物学预印本 | 每日 |
-| medRxiv | 医学预印本 | 每日 |
-| arXiv | 多学科预印本 | 每日 |
+| PubMed | 期刊论文 | 按需 |
+| bioRxiv | 生物学预印本 | 按需 |
+| medRxiv | 医学预印本 | 按需 |
+| arXiv | 多学科预印本 | 按需 |
 
 ### 🎯 智能筛选
 
@@ -89,7 +89,7 @@ OnTarget 是一个智能的个性化文献推送系统，帮助你自动跟踪�
 
 ```bash
 git clone https://github.com/operoncao123/OnTarget.git
-cd OnTarget-open
+cd OnTarget
 ```
 
 #### 2. 创建虚拟环境
@@ -234,7 +234,7 @@ MODEL=claude-3-opus-20240229
 crontab -e
 
 # 每天早上8点更新
-0 8 * * * cd /path/to/OnTarget-open && /path/to/venv/bin/python -c "from core.system import LiteraturePushSystemV2; LiteraturePushSystemV2().run_for_user('default_user')"
+0 8 * * * cd /path/to/OnTarget && /path/to/venv/bin/python -c "from core.system import LiteraturePushSystemV2; LiteraturePushSystemV2().run_for_user('default_user')"
 ```
 
 ### 反向代理配置
