@@ -605,9 +605,7 @@ def api_get_personalized_papers():
                 active_group = next((g for g in groups if g.get('is_active', True)), None)
                 if active_group:
                     user_keywords = active_group.get('keywords', [])
-                    print(f"[DEBUG] 从关键词组 '{active_group['name']}' 获取关键词: {user_keywords}")
         except Exception as e:
-            print(f"[DEBUG] 获取关键词组失败: {e}")
 
     if not user_keywords:
         return jsonify(
@@ -669,8 +667,6 @@ def api_get_personalized_papers():
 
         # 从缓存获取所有文献并筛选
         all_papers = list(system.cache.papers_cache.values())
-        print(f"[DEBUG] 获取到 {len(all_papers)} 篇文献从缓存")
-        print(f"[DEBUG] 关键词组关键词: {group.get('keywords', [])}")
 
         scored_papers = system.push_engine.get_personalized_papers_for_group(
             user_id=user_id,
@@ -678,7 +674,6 @@ def api_get_personalized_papers():
             available_papers=all_papers,
             limit=100,  # 内部限制最多返回100篇，避免内存溢出
         )
-        print(f"[DEBUG] 匹配到 {len(scored_papers)} 篇文献")
 
         # 为文献添加收藏状态
         for paper in scored_papers:
@@ -1014,10 +1009,8 @@ def api_change_password():
                 if active_group:
                     user_keywords = active_group.get("keywords", [])
                     print(
-                        f"[DEBUG] 从关键词组 '{active_group['name']}' 获取关键词: {user_keywords}"
                     )
         except Exception as e:
-            print(f"[DEBUG] 获取关键词组失败: {e}")
 
     if not user_keywords:
         return jsonify(
@@ -1079,8 +1072,6 @@ def api_change_password():
 
         # 从缓存获取所有文献并筛选
         all_papers = list(system.cache.papers_cache.values())
-        print(f"[DEBUG] 获取到 {len(all_papers)} 篇文献从缓存")
-        print(f"[DEBUG] 关键词组关键词: {group.get('keywords', [])}")
 
         scored_papers = system.push_engine.get_personalized_papers_for_group(
             user_id=user_id,
@@ -1088,7 +1079,6 @@ def api_change_password():
             available_papers=all_papers,
             limit=100,  # 内部限制最多返回100篇，避免内存溢出
         )
-        print(f"[DEBUG] 匹配到 {len(scored_papers)} 篇文献")
 
         # 标记是否已在当前组收藏
         for paper in scored_papers:
