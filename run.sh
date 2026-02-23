@@ -76,7 +76,7 @@ echo ""
 
 # 使用 gunicorn 启动（如果虚拟环境中有）
 if venv/bin/gunicorn &> /dev/null || [ -f "venv/bin/gunicorn" ]; then
-    WORKERS=${WORKERS:-4}
+    WORKERS=${WORKERS:-1}
     ./venv/bin/gunicorn \
         -w $WORKERS \
         -b 0.0.0.0:5500 \

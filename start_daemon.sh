@@ -46,7 +46,7 @@ echo ""
 echo -e "${GREEN}启动后台服务...${NC}"
 
 # 使用 nohup 后台运行 gunicorn
-WORKERS=${WORKERS:-4}
+WORKERS=${WORKERS:-1}
 nohup ./venv/bin/gunicorn \
     -w $WORKERS \
     -b 0.0.0.0:5500 \
