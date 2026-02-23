@@ -1354,7 +1354,7 @@
 
             return `
                 <div class="group-card ${group.is_active ? '' : 'inactive'}" data-id="${group.id}" 
-                     onclick="openGroupDashboard('${group.id}')">
+                     onclick="openGroupDashboard('${group.id}', event)">
                     <div class="group-header" style="background: ${group.color}10;">
                         <div class="group-icon" style="background: ${group.color}; color: white;">
                             ${group.icon}
@@ -1650,9 +1650,9 @@
         }
 
         // Open group dashboard
-        function openGroupDashboard(groupId) {
+        function openGroupDashboard(groupId, event) {
             // 检查是否是点击了操作按钮（按钮会阻止冒泡，但做一个安全检查）
-            if (event.target.closest('.action-btn')) {
+            if (event && event.target.closest('.action-btn')) {
                 return;
             }
             
