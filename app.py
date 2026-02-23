@@ -59,18 +59,28 @@ def ensure_local_user():
     if existing_user:
         return existing_user['id']
     
-    # 创建新用户
-    result = system.user_manager.register_user(LOCAL_USER_ID, 'local@localhost', 'localpass', [])
-    if result.get('success'):
-        print(f"✅ 已自动创建本地用户: {LOCAL_USER_ID}")
-        # 重新获取用户以获取正确的 id
-        new_user = system.user_manager.get_user_by_username(LOCAL_USER_ID)
-        if new_user:
-            return new_user['id']
-        return result.get('user_id', LOCAL_USER_ID)
-    else:
-        print(f"⚠️ 创建本地用户失败: {result.get('error')}")
-        return LOCAL_USER_ID
+    # 创建新用户（可能多个 worker 同时创建，捕获异常）
+    try:
+        result = system.user_manager.register_user(LOCAL_USER_ID, 'local@localhost', 'localpass', [])
+        if result.get('success'):
+            print(f"✅ 已自动创建本地用户: {LOCAL_USER_ID}")
+            new_user = system.user_manager.get_user_by_username(LOCAL_USER_ID)
+            if new_user:
+                return new_user['id']
+            return result.get('user_id', LOCAL_USER_ID)
+    except Exception as e:
+        pass
+    
+    # 如果创建失败（可能已被其他 worker 创建），再次尝试获取
+    existing_user = system.user_manager.get_user_by_email('local@localhost')
+    if existing_user:
+        return existing_user['id']
+    
+    existing_user = system.user_manager.get_user_by_username(LOCAL_USER_ID)
+    if existing_user:
+        return existing_user['id']
+    
+    return LOCAL_USER_ID
 
 # ============ API限流配置 (V2.6) ============
 from flask_limiter import Limiter
