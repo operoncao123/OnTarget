@@ -124,9 +124,18 @@ nano .env  # 或使用你喜欢的编辑器
 
 #### 5. 启动服务
 
+**前台运行（推荐用于调试）：**
 ```bash
 chmod +x run.sh
 ./run.sh
+```
+
+**后台运行（推荐用于生产环境）：**
+```bash
+chmod +x start_daemon.sh stop.sh status.sh
+./start_daemon.sh   # 启动后台服务
+./status.sh         # 查看状态
+./stop.sh           # 停止服务
 ```
 
 #### 6. 访问系统
