@@ -2293,7 +2293,20 @@
         async function loadPapers(reset = true) {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
-                const groupId = urlParams.get('group_id');
+                let groupId = urlParams.get('group_id');
+
+                // 如果没有指定组，自动选择第一个激活的组
+                if (!groupId && availableGroups.length > 0) {
+                    const activeGroup = availableGroups.find(g => g.is_active !== false);
+                    if (activeGroup) {
+                        groupId = activeGroup.id;
+                        console.log('[loadPapers] 自动选择第一个激活的组:', activeGroup.name);
+                        // 更新URL，但不刷新页面
+                        const newUrl = new URL(window.location);
+                        newUrl.searchParams.set('group_id', groupId);
+                        window.history.replaceState({}, '', newUrl);
+                    }
+                }
 
                 // 构建分页URL
                 let apiUrl = `/api/papers/personalized?page=${currentPage}&per_page=${PER_PAGE}`;
