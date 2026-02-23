@@ -1289,9 +1289,9 @@
                 const response = await fetch(url);
                 const contentType = response.headers.get('content-type');
                 
-                // 检查是否返回了 HTML（未登录）
+                // 检查是否返回了 HTML
                 if (!contentType || !contentType.includes('application/json')) {
-                    window.location.href = '/login';
+                    window.location.href = '/';
                     return;
                 }
                 
@@ -1701,7 +1701,7 @@
                 const contentType = response.headers.get('content-type');
                 
                 if (!contentType || !contentType.includes('application/json')) {
-                    window.location.href = '/login';
+                    window.location.href = '/';
                     return;
                 }
                 
@@ -1761,7 +1761,7 @@
                 const contentType = response.headers.get('content-type');
                 
                 if (!contentType || !contentType.includes('application/json')) {
-                    window.location.href = '/login';
+                    window.location.href = '/';
                     return;
                 }
                 
