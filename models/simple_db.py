@@ -13,6 +13,13 @@ class SimpleDatabase:
     """简单的SQLite数据库管理器"""
     
     def __init__(self, db_path='data/literature.db'):
+        # 转换为绝对路径
+        if not os.path.isabs(db_path):
+            # 获取项目根目录（simple_db.py 在 models/ 目录下）
+            current_file = os.path.abspath(__file__)
+            project_root = os.path.dirname(os.path.dirname(current_file))
+            db_path = os.path.join(project_root, db_path)
+        
         self.db_path = db_path
         self._init_db()
     
@@ -21,7 +28,7 @@ class SimpleDatabase:
         # 确保目录存在
         db_dir = os.path.dirname(self.db_path)
         if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir)
+            os.makedirs(db_dir, exist_ok=True)
         
         # 连接数据库（会自动创建文件）
         conn = sqlite3.connect(self.db_path)
