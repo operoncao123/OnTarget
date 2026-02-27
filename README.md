@@ -144,6 +144,62 @@ chmod +x start_daemon.sh stop.sh status.sh
 
 ---
 
+## 🐳 Docker 部署
+
+推荐使用 Docker 部署，无需手动配置 Python 环境。
+
+### 环境要求
+
+- Docker 20.10+
+- Docker Compose V2+
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/operoncao123/OnTarget.git
+cd OnTarget
+```
+
+### 2. 配置环境变量
+
+```bash
+cp .env.example .env
+nano .env  # 编辑配置文件
+```
+
+**必须配置的项：**
+- `API_KEY` - 你的 AI API Key
+- `SECRET_KEY` - 随机密钥（生成命令：`python3 -c "import secrets; print(secrets.token_hex(32))"`）
+- `PUBMED_EMAIL` - 你的邮箱
+
+### 3. 启动服务
+
+```bash
+# 构建并启动（后台运行）
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+```
+
+### 4. 访问系统
+
+打开浏览器访问：http://localhost:5500
+
+### 数据持久化
+
+容器通过 volume 挂载以下目录，数据不会因容器重建而丢失：
+
+| 宿主机路径 | 容器路径 | 说明 |
+|-----------|---------|------|
+| `./data` | `/app/data` | SQLite 数据库 |
+| `./logs` | `/app/logs` | 运行日志 |
+
+---
+
 ## ⚙️ 配置说明
 
 ### AI API 配置
@@ -208,10 +264,10 @@ MODEL=claude-3-opus-20240229
 
 ### 基本流程
 
-1. **创建关键词组** - 在"关键词管理"页面创建你的研究方向
-2. **更新文献** - 点击"更新文献"按钮获取最新文献
+1. **创建关键词组** - 在 "关键词管理" 页面创建你的研究方向
+2. **更新文献** - 点击 "更新文献" 按钮获取最新文献
 3. **浏览筛选** - 在主页浏览文献，使用筛选功能过滤
-4. **AI 分析** - 点击"AI分析"按钮深入分析感兴趣的文献
+4. **AI 分析** - 点击 "AI 分析" 按钮深入分析感兴趣的文献
 5. **收藏管理** - 收藏重要文献，按关键词组分类
 
 ### 高级功能
@@ -233,7 +289,7 @@ MODEL=claude-3-opus-20240229
 # 编辑 crontab
 crontab -e
 
-# 每天早上8点更新
+# 每天早上 8 点更新
 0 8 * * * cd /path/to/OnTarget && /path/to/venv/bin/python -c "from core.system import LiteraturePushSystemV2; LiteraturePushSystemV2().run_for_user('default_user')"
 ```
 
