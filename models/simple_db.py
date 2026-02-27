@@ -11,7 +11,7 @@ from datetime import datetime
 
 class SimpleDatabase:
     """简单的SQLite数据库管理器"""
-    
+
     def __init__(self, db_path='data/literature.db'):
         # 转换为绝对路径
         if not os.path.isabs(db_path):
@@ -19,27 +19,28 @@ class SimpleDatabase:
             current_file = os.path.abspath(__file__)
             project_root = os.path.dirname(os.path.dirname(current_file))
             db_path = os.path.join(project_root, db_path)
-        
+
         self.db_path = db_path
         self._init_db()
-    
+
     def _init_db(self):
         """初始化数据库"""
         # 确保目录存在
         db_dir = os.path.dirname(self.db_path)
-        
+
         if db_dir:
             try:
                 os.makedirs(db_dir, exist_ok=True)
             except Exception as e:
-        
+                pass
+
         # 连接数据库（会自动创建文件）
         try:
             conn = sqlite3.connect(self.db_path)
         except Exception as e:
             raise
         cursor = conn.cursor()
-        
+
         # 创建用户表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
@@ -59,7 +60,7 @@ class SimpleDatabase:
                 avatar TEXT
             )
         ''')
-        
+
         # 创建会话表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS sessions (
@@ -71,7 +72,7 @@ class SimpleDatabase:
                 user_agent TEXT
             )
         ''')
-        
+
         # 创建关键词组表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS keyword_groups (
@@ -89,7 +90,7 @@ class SimpleDatabase:
                 updated_at TEXT
             )
         ''')
-        
+
         # 创建文献表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS papers (
@@ -116,7 +117,7 @@ class SimpleDatabase:
                 updated_at TEXT
             )
         ''')
-        
+
         # 创建搜索缓存表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS search_cache (
@@ -128,7 +129,7 @@ class SimpleDatabase:
                 expires_at TEXT
             )
         ''')
-        
+
         # 创建分析缓存表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS analysis_cache (
@@ -143,7 +144,7 @@ class SimpleDatabase:
                 created_at TEXT
             )
         ''')
-        
+
         # 创建关键词索引表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS keyword_index (
@@ -152,7 +153,7 @@ class SimpleDatabase:
                 paper_id TEXT NOT NULL
             )
         ''')
-        
+
         # 创建用户文献关联表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_papers (
@@ -165,7 +166,7 @@ class SimpleDatabase:
                 saved_at TEXT
             )
         ''')
-        
+
         # 创建组内收藏表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS group_saved_papers (
@@ -175,7 +176,7 @@ class SimpleDatabase:
                 saved_at TEXT
             )
         ''')
-        
+
         # 创建组内阅读表
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS group_viewed_papers (
@@ -185,47 +186,47 @@ class SimpleDatabase:
                 viewed_at TEXT
             )
         ''')
-        
+
         conn.commit()
         conn.close()
-        
+
         # 数据库迁移：添加缺失的列
         self._migrate_add_columns()
-        
+
         print(f"✅ 数据库初始化完成: {self.db_path}")
-    
+
     def _migrate_add_columns(self):
         """数据库迁移：添加缺失的列"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        
+
         # 检查 users 表是否有 avatar 列
         cursor.execute("PRAGMA table_info(users)")
         columns = [row['name'] for row in cursor.fetchall()]
-        
+
         if 'avatar' not in columns:
             try:
                 cursor.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
                 print("✅ 数据库迁移: 已添加 avatar 列")
             except Exception as e:
                 print(f"⚠️ 添加 avatar 列失败: {e}")
-        
+
         if 'preferences' not in columns:
             try:
                 cursor.execute("ALTER TABLE users ADD COLUMN preferences TEXT")
                 print("✅ 数据库迁移: 已添加 preferences 列")
             except Exception as e:
                 print(f"⚠️ 添加 preferences 列失败: {e}")
-        
+
         conn.commit()
         conn.close()
-    
+
     def get_connection(self):
         """获取数据库连接"""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
-    
+
     def execute(self, query, params=()):
         """执行SQL语句"""
         conn = self.get_connection()
@@ -235,7 +236,7 @@ class SimpleDatabase:
         lastrowid = cursor.lastrowid
         conn.close()
         return lastrowid
-    
+
     def fetchone(self, query, params=()):
         """查询单条记录"""
         conn = self.get_connection()
@@ -244,7 +245,7 @@ class SimpleDatabase:
         row = cursor.fetchone()
         conn.close()
         return dict(row) if row else None
-    
+
     def fetchall(self, query, params=()):
         """查询多条记录"""
         conn = self.get_connection()
@@ -253,10 +254,10 @@ class SimpleDatabase:
         rows = cursor.fetchall()
         conn.close()
         return [dict(row) for row in rows]
-    
+
     def get_stats(self):
         """获取数据库统计信息"""
-        tables = ['users', 'sessions', 'keyword_groups', 'papers', 
+        tables = ['users', 'sessions', 'keyword_groups', 'papers',
                   'search_cache', 'analysis_cache', 'keyword_index']
         stats = {}
         for table in tables:
@@ -272,7 +273,7 @@ _db_instance = None
 
 def get_db(db_path=None):
     """获取全局数据库实例
-    
+
     Args:
         db_path: 数据库路径，默认使用配置的默认路径
     """

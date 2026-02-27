@@ -606,6 +606,7 @@ def api_get_personalized_papers():
                 if active_group:
                     user_keywords = active_group.get('keywords', [])
         except Exception as e:
+            pass
 
     if not user_keywords:
         return jsonify(
@@ -1011,6 +1012,7 @@ def api_change_password():
                     print(
                     )
         except Exception as e:
+            pass
 
     if not user_keywords:
         return jsonify(
