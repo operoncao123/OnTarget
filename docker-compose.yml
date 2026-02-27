@@ -1,0 +1,15 @@
+services:
+  ontarget:
+    build: .
+    container_name: ontarget
+    restart: unless-stopped
+    ports:
+      - "5500:5500"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - FLASK_APP=app.py
